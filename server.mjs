@@ -14,10 +14,13 @@ try {
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY;
 
-// List of models to try in order if quota is exceeded
+// All available models from your AI Studio list
 const GEMINI_MODELS = [
   "gemini-3.6-flash",
-  "gemini-3-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.5-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-3-flash-preview",
   "gemini-2.5-flash",
   "gemini-2.5-flash-lite"
 ];
@@ -119,7 +122,6 @@ const server = createServer(async (request, response) => {
 
       let text = null;
 
-      // Loop through available models if one hits quota/rate limits
       for (const model of GEMINI_MODELS) {
         try {
           const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -131,7 +133,7 @@ const server = createServer(async (request, response) => {
           if (upstream.ok) {
             const data = await upstream.json();
             text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("").trim();
-            if (text) break; // Successfully got a response!
+            if (text) break;
           } else {
             const errDetail = await upstream.text();
             console.warn(`Model ${model} failed [${upstream.status}]: ${errDetail}`);
