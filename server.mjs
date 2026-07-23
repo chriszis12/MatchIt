@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { loadEnvFile } from "node:process";
 
 const directory = dirname(fileURLToPath(import.meta.url));
-const htmlPath = join(directory, "matchitalphaforrichy.html");
+const htmlPath = join(directory, "index.html");
 try {
   loadEnvFile(join(directory, ".env"));
 } catch (error) {
