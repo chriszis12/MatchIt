@@ -14,6 +14,14 @@ try {
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY;
 
+// List of models to try in order if quota is exceeded
+const GEMINI_MODELS = [
+  "gemini-3.6-flash",
+  "gemini-3-flash",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite"
+];
+
 // 3-Tier Spiciness System
 const prompts = {
   en: {
@@ -109,29 +117,38 @@ const server = createServer(async (request, response) => {
         generationConfig: { maxOutputTokens: 256, temperature: 1.1 }
       });
 
-      let upstream;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-          body: requestBody
-        });
-        if (upstream.status !== 429) break;
-        if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      let text = null;
+
+      // Loop through available models if one hits quota/rate limits
+      for (const model of GEMINI_MODELS) {
+        try {
+          const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+            body: requestBody
+          });
+
+          if (upstream.ok) {
+            const data = await upstream.json();
+            text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("").trim();
+            if (text) break; // Successfully got a response!
+          } else {
+            const errDetail = await upstream.text();
+            console.warn(`Model ${model} failed [${upstream.status}]: ${errDetail}`);
+          }
+        } catch (e) {
+          console.warn(`Error calling ${model}:`, e.message);
+        }
       }
 
-      if (!upstream.ok) {
+      if (!text) {
         sendJson(response, 200, { text: null, source: "fallback" });
         return;
       }
 
-      const data = await upstream.json();
-      const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("").trim();
-      if (!text) throw new Error("Gemini returned no text");
-      
       sendJson(response, 200, { text, source: "ai" });
     } catch (error) {
-      console.error(error);
+      console.error("Internal Server Error:", error);
       sendJson(response, 200, { text: null, source: "fallback" });
     }
     return;
