@@ -2,625 +2,546 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MATCH IT! ALPHA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>MATCH IT!</title>
     <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Inter:wght@600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Default Theme (18- Mint Green) */
-            --bg-color: #CDFFE9; 
-            --stroke-color: #6A9D87;
-            --accent-bg: rgba(106, 157, 135, 0.14);
-            --punish-red: #ff4d4d;
-            --radial-glow: rgba(255, 255, 255, 0.28);
-            --text-font: 'Alfa Slab One', 'Inter', -apple-system, BlinkMacSystemFont, serif;
+            /* Level 1: Chill (Mint Green) */
+            --theme-1-bg: #CDFFE9; 
+            --theme-1-stroke: #5b967d;
+            --theme-1-accent: rgba(91, 150, 125, 0.15);
+            /* Level 2: Awkward (Vibrant Orange) */
+            --theme-2-bg: #FFDCA8; 
+            --theme-2-stroke: #D66D25;
+            --theme-2-accent: rgba(214, 109, 37, 0.15);
+            /* Level 3: NSFW (Crimson Dark) */
+            --theme-3-bg: #1a0509; 
+            --theme-3-stroke: #FF3366;
+            --theme-3-accent: rgba(255, 51, 102, 0.2);
+            /* Defaults (Will be overwritten by JS based on slider) */
+            --bg-color: var(--theme-1-bg);
+            --stroke-color: var(--theme-1-stroke);
+            --accent-bg: var(--theme-1-accent);
+            --punish-bg: #ff2a2a;
+            --text-font: 'Alfa Slab One', 'Inter', -apple-system, sans-serif;
         }
 
-        /* 18+ Theme Overrides (Spicy Crimson Red) */
-        body.mode-18plus {
-            --bg-color: #1a0509; 
-            --stroke-color: #FF3366;
-            --accent-bg: rgba(255, 51, 102, 0.2);
-            --radial-glow: rgba(255, 51, 102, 0.35);
-        }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        
+        /* NATIVE APP FEEL RESETS */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; margin: 0; padding: 0; }
         body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: var(--bg-color);
-            font-family: var(--text-font);
-            overflow: hidden;
-            display: flex; flex-direction: column;
-            transition: background-color 0.4s ease, color 0.4s ease;
+            width: 100%; height: 100%; overflow: hidden;
+            background-color: var(--bg-color); font-family: var(--text-font);
+            user-select: none; touch-action: pan-y; /* Disable pinch zoom/text selection */
+            transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
+        /* BACKGROUND TEXTURE */
         body::before {
-            content: '';
-            position: fixed;
-            inset: -35%;
-            pointer-events: none;
-            background: radial-gradient(circle, var(--radial-glow) 0%, transparent 60%);
-            animation: ambient-drift 12s ease-in-out infinite alternate;
-            transition: background 0.4s ease;
+            content: ''; position: fixed; inset: 0; pointer-events: none; opacity: 0.4;
+            background-image: radial-gradient(var(--stroke-color) 1px, transparent 1px);
+            background-size: 20px 20px; transition: opacity 0.5s; z-index: -1;
         }
 
+        /* TYPOGRAPHY */
         .outline-text {
-            color: transparent;
-            -webkit-text-stroke: 1.1px var(--stroke-color);
-            text-align: center;
-            font-weight: 400;
-            text-transform: uppercase;
-            line-height: 1.4;
-            letter-spacing: 0.02em;
-            transition: -webkit-text-stroke 0.4s ease;
+            color: transparent; -webkit-text-stroke: 1.5px var(--stroke-color);
+            text-align: center; text-transform: uppercase; line-height: 1.3;
+            transition: -webkit-text-stroke 0.5s ease, color 0.5s ease;
         }
+        .solid-text { color: var(--stroke-color); font-family: 'Inter', sans-serif; font-weight: 800; }
 
+        /* SCREENS */
         .screen {
-            display: none; width: 100%; height: 100%;
-            flex-direction: column; align-items: center; justify-content: space-between;
-            position: absolute; padding: 50px 0;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; 
+            justify-content: space-between; position: absolute; padding: max(env(safe-area-inset-top, 40px), 40px) 20px max(env(safe-area-inset-bottom, 40px), 40px);
         }
-        .screen.active { display: flex; }
+        .screen.active { display: flex; animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
 
-        @keyframes popIn {
-            from { opacity: 0; transform: translateY(12px) scale(0.97); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes ambient-drift {
-            from { transform: translate3d(-4%, -2%, 0) scale(0.95); }
-            to { transform: translate3d(4%, 2%, 0) scale(1.05); }
+        @keyframes slideIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
-        #back-btn {
-            position: absolute; top: 25px; left: 20px;
-            font-size: 1.2rem; z-index: 1000; cursor: pointer;
-            display: none; -webkit-text-stroke: 1px var(--stroke-color);
+        /* HEADER UI */
+        .header-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        .icon-btn { 
+            background: transparent; border: 3px solid var(--stroke-color); border-radius: 50%;
+            width: 45px; height: 45px; display: flex; justify-content: center; align-items: center;
+            font-size: 1.2rem; cursor: pointer; transition: transform 0.1s;
         }
-
-        .version-label {
-            position: absolute;
-            right: 14px;
-            bottom: 14px;
-            color: var(--stroke-color);
-            font-family: 'Inter', sans-serif;
-            font-size: 0.65rem;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            opacity: 0.75;
-        }
-
-        h1.title { font-size: 3.2rem; line-height: 1.15; margin: 0; }
-        h1.title span { font-size: 2rem; display: block; margin-top: 10px; }
-
-        .mode-toggle {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            border: 3px solid var(--stroke-color);
-            border-radius: 30px;
-            padding: 8px 18px;
-            cursor: pointer;
-            user-select: none;
-            transition: all 0.3s ease;
-            background: rgba(0, 0, 0, 0.05);
-        }
-        body.mode-18plus .mode-toggle {
-            background: rgba(255, 51, 102, 0.15);
-            box-shadow: 0 0 12px rgba(255, 51, 102, 0.3);
-        }
-        .mode-toggle span {
-            font-size: 1.1rem;
-        }
-
-        .btn {
-            border: 4px solid var(--stroke-color);
-            border-radius: 50px; padding: 16px 45px;
-            font-size: 1.8rem; background: transparent;
-            transition: all 0.15s ease; cursor: pointer;
-        }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 0 var(--accent-bg); }
-        .btn:active { transform: scale(0.92); background: var(--accent-bg); }
-        .btn.disabled { opacity: 0.5; pointer-events: none; }
-
-        .divider {
-            width: 100%; height: 5px; background-color: var(--stroke-color); flex-shrink: 0;
-            transform-origin: left center;
-            transition: background-color 0.4s ease;
-        }
-        #game.active .divider { animation: divider-in 0.55s ease both; }
-
-        .instr-zone { width: 100%; min-height: 70px; display: flex; align-items: center; justify-content: center; padding: 10px 20px; }
-        .q-zone { flex-grow: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 30px; text-align: center; }
-        .q-text { 
-            font-size: 1.9rem; 
-            line-height: 1.45; 
-            color: var(--stroke-color);
-            font-weight: 400;
-            transition: color 0.4s ease;
-        }
-        .action-zone { width: 100%; padding: 30px 0; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .icon-btn:active { transform: scale(0.85); background: var(--accent-bg); }
         
+        .stats-bar { display: flex; gap: 15px; font-family: 'Inter'; font-weight: 800; color: var(--stroke-color); font-size: 1rem; }
+        .stat-badge { background: var(--accent-bg); padding: 5px 12px; border-radius: 20px; border: 2px solid var(--stroke-color); }
+
+        h1.title { font-size: clamp(3rem, 12vw, 4.5rem); margin: 20px 0; line-height: 1; }
+
+        /* BUTTONS */
+        .btn-group { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 320px; }
+        .btn {
+            border: 4px solid var(--stroke-color); border-radius: 20px; padding: 18px;
+            font-size: 1.8rem; background: var(--bg-color); cursor: pointer;
+            box-shadow: 0 6px 0 var(--stroke-color); transition: all 0.1s ease;
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+        }
+        .btn:active { transform: translateY(6px); box-shadow: 0 0px 0 var(--stroke-color); }
+        .btn.disabled { opacity: 0.5; pointer-events: none; }
+        .btn-small { font-size: 1.2rem; padding: 12px; border-width: 3px; box-shadow: 0 4px 0 var(--stroke-color); border-radius: 15px; }
+        .btn-small:active { transform: translateY(4px); box-shadow: 0 0 0 var(--stroke-color); }
+
+        /* GAMEPLAY CARD */
+        .game-card {
+            flex-grow: 1; width: 100%; max-width: 400px; margin: 20px 0;
+            background: var(--accent-bg); border: 4px solid var(--stroke-color); border-radius: 25px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 30px 20px; text-align: center; position: relative; overflow: hidden;
+            backdrop-filter: blur(5px);
+        }
+        .q-text { font-size: 1.8rem; line-height: 1.4; color: var(--stroke-color); transition: color 0.4s; }
+        
+        /* TIMER */
+        .timer-wrap { display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 10px; gap: 20px; }
         .timer-circle {
-            width: 75px; height: 75px; border: 4px solid var(--stroke-color);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 2.2rem;
-            transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.4s ease;
+            width: 80px; height: 80px; border: 5px solid var(--stroke-color); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 2.2rem;
+            background: var(--bg-color); box-shadow: 0 4px 0 var(--stroke-color);
         }
-        .timer-circle.warning { animation: timer-pulse 0.75s ease-in-out infinite; }
+        .timer-circle.warning { animation: pulseWarning 0.5s infinite alternate; color: #ff2a2a; -webkit-text-stroke: 0; border-color: #ff2a2a; }
 
-        .punish-mode { background-color: var(--punish-red) !important; }
-        .punish-mode .outline-text { -webkit-text-stroke-color: white !important; }
-        .punish-mode .q-text { color: white !important; }
-        .punish-mode .divider { background-color: white !important; }
-        .punish-mode .timer-circle {
-            background-color: transparent !important;
-            border-color: white !important;
-            color: white !important;
-            -webkit-text-stroke-color: white !important;
-        }
-        .punish-mode .btn { border-color: white !important; -webkit-text-stroke-color: var(--punish-red) !important; background: white !important;}
+        @keyframes pulseWarning { from { transform: scale(1); } to { transform: scale(1.15); box-shadow: 0 0 20px #ff2a2a; } }
 
-        .badge-18 {
-            display: inline-block;
-            font-size: 1rem;
-            padding: 2px 10px;
-            border-radius: 12px;
-            border: 2px solid var(--stroke-color);
-            margin-left: 8px;
-            vertical-align: middle;
+        /* SETTINGS MODAL */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+            display: flex; justify-content: center; align-items: center; z-index: 100;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
         }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .modal-content {
+            background: var(--bg-color); border: 4px solid var(--stroke-color); border-radius: 25px;
+            width: 90%; max-width: 350px; padding: 30px 20px; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+            display: flex; flex-direction: column; gap: 20px;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        
+        .setting-row { display: flex; justify-content: space-between; align-items: center; font-family: 'Inter'; font-weight: 800; color: var(--stroke-color); font-size: 1.1rem; }
+        
+        /* SLIDER CSS */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 15px 0; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 30px; width: 30px; border-radius: 50%;
+            background: var(--bg-color); border: 4px solid var(--stroke-color);
+            cursor: pointer; margin-top: -10px; box-shadow: 0 4px 0 var(--stroke-color);
+        }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 10px; cursor: pointer; background: var(--accent-bg); border-radius: 10px; border: 2px solid var(--stroke-color); }
+        
+        /* TOGGLE CSS */
+        .toggle-switch { position: relative; width: 60px; height: 34px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider-tog { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--accent-bg); border: 3px solid var(--stroke-color); border-radius: 34px; transition: .4s; }
+        .slider-tog:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: var(--stroke-color); border-radius: 50%; transition: .4s; }
+        input:checked + .slider-tog { background-color: var(--stroke-color); }
+        input:checked + .slider-tog:before { transform: translateX(26px); background-color: var(--bg-color); }
 
-        .loading:after {
-            content: '';
-            display: inline-block;
-            width: 1.4em;
-            height: 0.35em;
-            margin-left: 0.2em;
-            background: radial-gradient(circle, currentColor 45%, transparent 48%) 0 50% / 0.4em 0.4em repeat-x;
-            animation: loading-dots 0.9s steps(3) infinite;
-        }
-        .question-arrive { animation: question-arrive 0.48s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .punish-mode #game { animation: punish-hit 0.42s ease both; }
+        /* PUNISHMENT OVERRIDES */
+        body.punish-mode { --bg-color: var(--punish-bg); --stroke-color: #fff; --accent-bg: rgba(255,255,255,0.2); }
+        .punish-mode .outline-text { color: transparent; -webkit-text-stroke-color: #fff; }
+        .punish-mode .q-text, .punish-mode .solid-text { color: #fff; }
+        .punish-mode .timer-circle { display: none; } /* Hide timer in punishment */
 
-        @keyframes loading-dots {
-            from { clip-path: inset(0 100% 0 0); }
-            to { clip-path: inset(0 0 0 0); }
-        }
-        @keyframes question-arrive {
-            from { opacity: 0; transform: translateY(14px) scale(0.98); filter: blur(4px); }
-            to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-        }
-        @keyframes divider-in {
-            from { transform: scaleX(0); opacity: 0; }
-            to { transform: scaleX(1); opacity: 1; }
-        }
-        @keyframes timer-pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        @keyframes punish-hit {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            50% { transform: translateX(5px); }
-            75% { transform: translateX(-2px); }
-            100% { transform: translateX(0); }
-        }
+        /* FALLBACK ALERT UI */
+        .fallback-alert { font-family: 'Inter'; font-weight: 800; font-size: 0.9rem; color: #ff3366; background: rgba(255,51,102,0.15); padding: 5px 10px; border-radius: 10px; border: 2px solid #ff3366; margin-bottom: 10px; display: none; }
+        .fallback-alert.active { display: inline-block; animation: shake 0.4s; }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
     </style>
 </head>
 <body>
-    <div id="back-btn" class="outline-text" onclick="goHome()">&lt; BACK</div>
-    
+
     <!-- HOME SCREEN -->
     <div id="home" class="screen active">
-        <h1 class="title outline-text">MATCH IT!<span>ALPHA</span></h1>
-        
-        <!-- Mode Switch Button -->
-        <div class="mode-toggle outline-text" id="mode-toggle-btn" onclick="toggleAdultMode()">
-            <span id="mode-text">MODE: 18- 😇</span>
+        <div class="header-bar">
+            <div class="icon-btn outline-text" onclick="nav('about')">?</div>
+            <div class="icon-btn outline-text" onclick="openSettings()">⚙</div>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 15px;">
-            <div class="btn outline-text" style="text-transform: none;" onclick="start('el')">Greek</div>
-            <div class="btn outline-text" style="text-transform: none;" onclick="start('en')">English</div>
-            <div class="btn outline-text" style="font-size: 1.2rem;" onclick="nav('about')">ABOUT</div>
+        <div style="text-align: center;">
+            <h1 class="title outline-text">MATCH IT!</h1>
+            <div id="home-spice-label" class="solid-text" style="font-size: 1.2rem; margin-bottom: 20px;">SPICE: AWKWARD 😬</div>
         </div>
-        <div class="outline-text" style="font-size: 0.8rem;">COPYRIGHT CHRISTOS ZISOPOULOS 2026</div>
-        <div class="version-label">v0.4.0</div>
+        
+        <div class="btn-group">
+            <div class="btn outline-text" onclick="start('en')">START (EN)</div>
+            <div class="btn outline-text" onclick="start('el')">START (EL)</div>
+        </div>
+        
+        <div class="solid-text" style="font-size: 0.7rem; opacity: 0.6;">v0.5.0 • ZISOPOULOS</div>
     </div>
 
     <!-- ABOUT SCREEN -->
     <div id="about" class="screen">
-        <h1 class="title outline-text">MATCH IT!<span>ALPHA</span></h1>
-        <div style="width:85%; font-size: 1.1rem; line-height: 1.5; text-align: center; color: var(--stroke-color);">
-            <p>This game is designed for mobile fun with friends.</p>
-            <p>Pass the phone to the person who fits the AI prompt within <b>30 seconds</b>.</p>
-            <p>Toggle <b>18+ Mode</b> on the main screen for spicy, chaotic adult party questions! 🔥</p>
-            <p>Fail = AI Punishment.</p>
-            <p style="font-size: 0.85rem;">Contact: support.matchit@gmail.com</p>
+        <div class="header-bar">
+            <div class="icon-btn outline-text" onclick="goHome()">&lt;</div>
+            <div class="solid-text">HOW TO PLAY</div>
+            <div style="width: 45px;"></div>
         </div>
-        <div class="btn outline-text" style="font-size: 1.2rem;" onclick="goHome()">BACK</div>
+        <div class="game-card">
+            <p class="solid-text" style="font-size: 1.1rem; line-height: 1.6; text-align: left;">
+                1. Pick a language.<br><br>
+                2. Read the prompt out loud.<br><br>
+                3. Pass the device to the person who fits it best within <b>30 seconds</b>.<br><br>
+                4. Fail to decide? <b>AI Punishment!</b><br><br>
+                <i>Adjust Spiciness in Settings! ⚙️</i>
+            </p>
+        </div>
+        <div class="btn outline-text btn-small" style="width: 100%; max-width: 320px;" onclick="goHome()">BACK</div>
     </div>
 
     <!-- GAME SCREEN -->
-    <div id="game" class="screen" style="padding: 0; justify-content: flex-start;">
-        <div class="outline-text" id="g-title" style="font-size: 2.2rem; margin: 35px 0 15px 0;">MATCH IT!</div>
-        <div class="divider"></div>
-        <div class="instr-zone"><div id="g-instr" class="outline-text" style="font-size:1.3rem;">Give the match to the person who</div></div>
-        <div class="divider"></div>
-        <div class="q-zone"><div id="q-text" class="q-text">LOADING</div></div>
-        <div class="divider"></div>
-        <div class="action-zone">
-            <div class="btn outline-text" id="next-btn" onclick="nextQ()">GOT IT!</div>
+    <div id="game" class="screen">
+        <div class="header-bar">
+            <div class="icon-btn outline-text" onclick="goHome()">&lt;</div>
+            <div class="stats-bar">
+                <div class="stat-badge" id="round-counter">RND 1</div>
+                <div class="stat-badge" id="skip-counter">⚡ 3</div>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div id="fallback-warning" class="fallback-alert">AI OFFLINE: FALLBACK LOADED</div>
+            <div class="solid-text" id="g-instr" style="font-size: 1rem; margin-bottom: 15px; opacity: 0.8;">Give the match to whoever...</div>
+            <div id="q-text" class="q-text outline-text">LOADING...</div>
+        </div>
+
+        <div class="timer-wrap">
+            <div class="btn outline-text btn-small" id="skip-btn" style="flex: 1;" onclick="skipQ()">SKIP ⚡</div>
             <div id="timer" class="timer-circle outline-text">30</div>
+            <div class="btn outline-text" id="next-btn" style="flex: 2;" onclick="nextQ()">GOT IT!</div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-content">
+            <h2 class="outline-text" style="font-size: 2rem; margin-bottom: 10px;">SETTINGS</h2>
+            
+            <div class="setting-row">
+                <span>VIBRATION</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="vib-toggle" onchange="saveSettings()">
+                    <span class="slider-tog"></span>
+                </label>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <div class="setting-row">
+                    <span>SPICINESS</span>
+                    <span id="spice-display">AWKWARD 😬</span>
+                </div>
+                <input type="range" id="spice-slider" min="1" max="3" value="2" oninput="updateSpiceDisplay()" onchange="saveSettings()">
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--stroke-color); font-family: 'Inter'; font-weight: 800; opacity: 0.7;">
+                    <span>CHILL</span>
+                    <span>AWKWARD</span>
+                    <span>NSFW</span>
+                </div>
+            </div>
+
+            <div class="btn outline-text btn-small" style="margin-top: 20px;" onclick="closeSettings()">DONE</div>
         </div>
     </div>
 
     <script>
+        // --- STATE ---
         let lang = 'en';
-        let isAdult = false;
         let time = 30;
         let timer;
         let requestToken = 0;
+        let skips = 3;
+        let round = 1;
 
-        const EXPIRE_48H_MS = 48 * 60 * 60 * 1000; // 48 Hours in milliseconds
+        let settings = { vibration: true, spiciness: 2 };
+        
+        const EXPIRE_48H_MS = 48 * 60 * 60 * 1000;
 
-        /* =========================================================
-           10x EXPANDED FALLBACK QUESTION POOLS
-           ========================================================= */
+        // --- EXPANDED FALLBACKS ---
         const FALLBACKS = {
             en: {
-                teen: [
-                    "Would take the last parachute from a crashing plane.",
+                chill: [
+                    "Would take the last slice of pizza without asking.",
                     "Replies to a text message three business days later.",
-                    "Cancels plans five minutes before everyone arrives.",
                     "Loses their phone while holding it in their hand.",
-                    "Eats all the party snacks before anyone else gets one.",
-                    "Laughs uncontrollably at the worst possible moment.",
-                    "Accidentally likes a 7-year-old photo during late night stalking.",
                     "Arrives late to their own birthday party.",
-                    "Opens the fridge ten times expecting new food to appear.",
                     "Gets lost while driving on a completely straight road.",
-                    "Sends a screenshot to the exact person in the screenshot.",
                     "Cries hysterically over a fictional movie character.",
-                    "Buys something useless just because it was on 50% discount.",
-                    "Gives life-changing advice but never follows any of it.",
-                    "Starts cleaning their room and ends up reading 2018 text messages.",
-                    "Wins an argument using completely made-up statistics.",
-                    "Wears sunglasses indoors at night.",
-                    "Forgets someone's name two seconds after being introduced.",
-                    "Makes a dramatic exit and immediately walks back in.",
-                    "Brings random emergency items that everyone surprisingly needs.",
-                    "Spends an hour choosing what movie to watch and then falls asleep.",
-                    "Accidentally calls their teacher or boss 'Mom'.",
                     "Takes 80 selfies and posts absolutely zero of them.",
-                    "Pretends to check their phone when walking in the wrong direction.",
+                    "Accidentally calls their teacher or boss 'Mom'."
+                ],
+                awkward: [
+                    "Has the most embarrassing internet search history in this room.",
+                    "Would absolutely betray a friend for a million dollars.",
+                    "Probably practices arguments in the shower and still loses.",
+                    "Would get arrested for doing something completely stupid.",
+                    "Has definitely created a fake account to stalk an ex.",
+                    "Would pretend to be asleep to avoid helping someone move.",
+                    "Accidentally likes a 7-year-old photo during late night stalking.",
+                    "Would delete a social media post if it didn't get enough likes.",
+                    "Gives life-changing advice but never follows any of it.",
                     "Gets overly competitive during a friendly casual board game."
                 ],
-                adult: [
-                    "Would have sex on an office desk at work!",
-                    "Would secretly search through their partner's phone for cheating evidence!",
-                    "Pass the match to whoever would join the mile-high club in an airplane bathroom!",
-                    "Who in this room would you want to give you a lap dance?",
-                    "Who in this room do you think has the biggest talent in oral sex?",
-                    "Pass the match to whoever would send a risky late-night text to someone in this room!",
-                    "Who is most likely to stop having sex completely after getting married?",
-                    "Who in this room do you think has the wildest secret fantasies?",
-                    "Pass the match to whoever would hook up with a friend's ex!",
-                    "Who do you think has sent the most extreme nudes?",
-                    "Who in this room would kiss someone here right now if no one was looking?",
-                    "Pass the match to whoever has had sex in the strangest public place!",
-                    "Who would have a one-night stand and ghost them immediately after?",
-                    "Who do you think owns the most secret sex toys at home?",
-                    "Pass the match to whoever would go on a date just for free high-end food!",
-                    "Who looks totally innocent but is actually the wild animal in bed?",
-                    "Who has used the fakest lines just to sleep with someone?",
-                    "Pass the match to whoever would agree to a threesome without hesitation!",
-                    "Who would accidentally send a spicy photo to the family group chat?",
-                    "Who do you think has hooked up in a car parked in a crowded spot?",
-                    "Pass the match to whoever has hooked up with someone whose name they didn't know!",
-                    "Who here would accept $10,000 to post their search history online?",
-                    "Who is most likely to have a secret secondary dating profile?",
-                    "Who here would flirt with a police officer to get out of a speeding ticket?",
-                    "Pass the match to whoever has lied about their body count!"
+                nsfw: [
+                    "Would definitely show up to a funeral extremely hungover.",
+                    "Is most likely to pee in a public pool and deny it.",
+                    "Would steal the tip jar from a coffee shop if no one was looking.",
+                    "Would accidentally send a nude to the family group chat.",
+                    "Has the highest body count but lies about it.",
+                    "Would flirt their way out of a speeding ticket.",
+                    "Would secretly search through their partner's phone for cheating evidence.",
+                    "Would have a one-night stand and ghost them immediately after.",
+                    "Owns the most secret sex toys at home.",
+                    "Would go on a date just for free high-end food and drinks."
                 ],
                 punishment: [
                     "Do 10 jumping jacks while declaring you are a fake friend!",
+                    "Let the person to your right send a text emoji from your phone.",
                     "Speak like a movie villain until your next turn.",
                     "Pretend the floor is lava for fifteen seconds.",
-                    "Sing your next sentence like a dramatic opera star.",
-                    "Walk like a penguin around the entire room.",
                     "Give an emotional acceptance speech for winning absolutely nothing.",
-                    "Let the person to your right send a text emoji from your phone.",
-                    "Act like a cat until someone guesses what you are.",
-                    "Speak in a posh accent for the next two rounds.",
-                    "Do a slow-motion dramatic faint right now!"
+                    "Show the group the last photo you took on your phone."
                 ]
             },
             el: {
-                teen: [
-                    "Θα έπαιρνε το τελευταίο αλεξίπτωτο από ένα αεροπλάνο που πέφτει.",
+                chill: [
+                    "Θα έπαιρνε το τελευταίο κομμάτι πίτσα χωρίς να ρωτήσει.",
                     "Θα απαντούσε σε μήνυμα μετά από 3 εργάσιμες μέρες.",
-                    "Θα ακύρωνε σχέδια 5 λεπτά πριν τη συνάντηση.",
                     "Θα έχανε το κινητό ενώ το κρατάει στο χέρι του.",
-                    "Θα έτρωγε όλο το φαγητό πριν φτάσουν οι άλλοι.",
-                    "Θα γελούσε στην πιο ακατάλληλη και σοβαρή στιγμή.",
-                    "Θα έκανε Like κατά λάθος σε φωτογραφία 7 χρόνων στο Instagram.",
                     "Θα αργούσε στο ίδιο του το πάρτι γενεθλίων.",
-                    "Θα άνοιγε το ψυγείο 10 φορές περιμένοντας να εμφανιστεί φαγητό.",
-                    "Θα χανόταν ενώ ακολουθεί έναν εντελώς ίσιο δρόμο.",
-                    "Θα έστελνε screenshot στο άτομο που είναι μέσα στο screenshot.",
                     "Θα έκλαιγε για έναν φανταστικό χαρακτήρα σε ταινία.",
-                    "Θα αγόραζε κάτι άχρηστο μόνο και μόνο επειδή είχε 50% έκπτωση.",
-                    "Θα έδινε τις καλύτερες συμβουλές αλλά δεν θα ακολουθούσε καμία.",
-                    "Θα ξεκινούσε καθάρισμα και θα κατέληγε να διαβάζει παλιά μηνύματα.",
-                    "Θα τσακωνόταν με κάποιον χρησιμοποιώντας εντελώς ψεύτικα στοιχεία.",
-                    "Θα φορούσε γυαλιά ηλίου μέσα στη νύχτα.",
-                    "Θα ξεχνούσε το όνομα κάποιου 2 δευτερόλεπτα αφού συστήθηκαν.",
-                    "Θα έκανε δραματική έξοδο από το δωμάτιο και θα επέστρεφε αμέσως.",
-                    "Θα έπαιρνε μαζί του πράγματα που κανείς δεν ζήτησε αλλά όλοι χρειάστηκαν.",
-                    "Θα έψαχνε 1 ώρα τι ταινία θα δει και θα αποκοιμιόταν στα credits.",
                     "Θα έβγαζε 50 φωτογραφίες και δεν θα ανέβαζε καμία.",
-                    "Θα προσποιόταν ότι κοιτάει το GPS ενώ απλά έκανε λάθος δρόμο.",
-                    "Θα γινόταν υπερβολικά ανταγωνιστικός/η σε ένα χαλαρό επιτραπέζιο."
+                    "Θα χανόταν ενώ ακολουθεί έναν εντελώς ίσιο δρόμο."
                 ],
-                adult: [
-                    "Δώσε τον αναπτήρα σε αυτόν/ή που πιστεύεις ότι θα έκανε σεξ πάνω σε ένα γραφείο σε εταιρικό χώρο!",
-                    "Ποιος/α πιστεύεις ότι θα έψαχνε το κινητό του συντρόφου του για να δει αν τον/την απατάει;",
-                    "Δώσε τον αναπτήρα σε αυτόν/ή που πιστεύεις ότι θα έκανε σεξ σε αεροπλάνο!",
-                    "Ποιο άτομο του αντίθετου φύλου θα ήθελες να σου χορέψει lap dance;",
-                    "Ποιο άτομο έχει το μεγαλύτερο ταλέντο στο στοματικό σεξ;",
-                    "Δώσε τον αναπτήρα σε αυτόν/ή που πιστεύεις ότι θα έγραφε τολμηρό ερωτικό γράμμα σε κάποιον/α από την παρέα!",
-                    "Ποιος/α πιστεύεις πως θα κάνει μια φορά την εβδομάδα έως καθόλου σεξ μετά τον γάμο και τα παιδιά;",
-                    "Ποιο άτομο από την παρέα έχει τις πιο περίεργες ερωτικές φαντασιώσεις;",
-                    "Δώσε τον αναπτήρα σε αυτόν/ή που θα έκανε secret hookup με πρώην φίλου/ης!",
-                    "Ποιος/α πιστεύεις ότι έχει στείλει τις πιο ακραίες γυμνές φωτογραφίες (nudes);",
-                    "Ποιο άτομο θα φιλούσε κάποιον από την παρέα αυτή τη στιγμή αν δεν έβλεπε κανείς;",
-                    "Δώσε τον αναπτήρα σε αυτόν/ή που έχει κάνει σεξ στο πιο παράξενο δημόσιο μέρος!",
-                    "Ποιος/α θα έκανε One Night Stand και μετά θα εξαφανιζόταν χωρίς μήνυμα;",
-                    "Ποιο άτομο πιστεύεις ότι έχει τα περισσότερα κρυφά ερωτικά παιχνίδια στο σπίτι;",
-                    "Δώσε τον αναπτήρα σε αυτόν/ή που θα έβγαινε ραντεβού μόνο για δωρεάν φαγητό/ποτό!",
-                    "Ποιος/α πιστεύεις ότι είναι ο πιο άτακτος/η στο κρεβάτι παρά το αθώο του ύφος;",
-                    "Ποιος/α έχει πει τα πιο ψεύτικα κομπλιμέντα για να ρίξει κάποιον/α στο κρεβάτι;",
-                    "Δώσε τον αναπτήρα σε αυτόν/ή που θα έκανε τρίο χωρίς δεύτερη σκέψη!",
-                    "Ποιος/α θα έστελνε κατά λάθος πονηρό μήνυμα στην οικογενειακή ομάδα στο Viber;",
-                    "Ποιο άτομο πιστεύεις ότι έχει κάνει σεξ στο αυτοκίνητο σε πολυσύχναστο σημείο;",
-                    "Δώσε τον αναπτήρα σε αυτόν/ή που έχει κάνει σεξ με άτομο που δεν θυμόταν το όνομά του!",
-                    "Ποιος/α θα δεχόταν 10.000€ για να δείξει το ιστορικό αναζήτησής του στην παρέα;",
-                    "Ποιος/α πιστεύεις ότι έχει κρυφό δεύτερο προφίλ σε dating app;",
-                    "Ποιος/α θα έκανε φλερτ σε αστυνομικό για να γλιτώσει κλήση;",
-                    "Δώσε τον αναπτήρα σε αυτόν/ή που έχει πει ψέματα για τον αριθμό των ερωτικών του συντρόφων!"
+                awkward: [
+                    "Έχει το πιο ντροπιαστικό ιστορικό αναζήτησης στο ίντερνετ.",
+                    "Θα πρόδιδε φίλο για ένα εκατομμύριο ευρώ χωρίς σκέψη.",
+                    "Κάνει πρόβες για καυγάδες στο μπάνιο και πάλι χάνει.",
+                    "Θα τον συνελάμβαναν για κάτι εντελώς ηλίθιο.",
+                    "Έχει σίγουρα φτιάξει ψεύτικο προφίλ για να παρακολουθεί πρώην.",
+                    "Θα έκανε πως κοιμάται για να μην βοηθήσει σε μετακόμιση.",
+                    "Θα έκανε Like κατά λάθος σε φωτογραφία 7 χρόνων στο Instagram.",
+                    "Θα διέγραφε post αν δεν έπαιρνε αρκετά likes.",
+                    "Δίνει τέλειες συμβουλές αλλά η ζωή του είναι χάος.",
+                    "Γίνεται υπερβολικά ανταγωνιστικός σε χαλαρά επιτραπέζια."
+                ],
+                nsfw: [
+                    "Θα πήγαινε σε κηδεία με ακραίο hangover.",
+                    "Θα κατουρούσε σε δημόσια πισίνα και θα το αρνιόταν.",
+                    "Θα έκλεβε το βάζο με τα tips αν δεν έβλεπε κανείς.",
+                    "Θα έστελνε κατά λάθος γυμνή φωτογραφία στο οικογενειακό γκρουπ.",
+                    "Έχει πάει με τους περισσότερους αλλά λέει ψέματα για τον αριθμό.",
+                    "Θα φλέρταρε αστυνομικό για να γλιτώσει κλήση.",
+                    "Θα έψαχνε κρυφά το κινητό του συντρόφου του για απιστία.",
+                    "Θα έκανε One Night Stand και μετά θα εξαφανιζόταν εντελώς.",
+                    "Έχει τα περισσότερα κρυφά ερωτικά παιχνίδια στο σπίτι.",
+                    "Θα έβγαινε ραντεβού μόνο για δωρεάν ακριβό φαγητό."
                 ],
                 punishment: [
-                    "Κάνε 10 αναπηδήσεις φωνάζοντας ότι είσαι δίπουλος φίλος!",
+                    "Κάνε 10 αναπηδήσεις φωνάζοντας ότι είσαι διπρόσωπος φίλος!",
+                    "Άφησε τον διπλανό σου να στείλει ένα emoji από το κινητό σου.",
                     "Μίλα σαν κακός ταινίας μέχρι τον επόμενο γύρο.",
                     "Κάνε πως το πάτωμα είναι λάβα για 15 δευτερόλεπτα.",
-                    "Τραγούδησε την επόμενη πρότασή σου σαν όπερα.",
-                    "Περπάτησε σαν πιγκουίνος γύρω από το δωμάτιο.",
                     "Κάνε ευχαριστήριο λόγο επειδή κέρδισες απολύτως τίποτα.",
-                    "Άφησε τον διπλανό σου να στείλει ένα emoji από το κινητό σου.",
-                    "Κάνε τη γάτα μέχρι κάποιος να το μαντέψει.",
-                    "Μίλα με χωριάτικη προφορά για τους επόμενους δύο γύρους.",
-                    "Κάνε την πιο δραματική λιποθυμία σε αργή κίνηση!"
+                    "Δείξε στην παρέα την τελευταία φωτογραφία που τράβηξες."
                 ]
             }
         };
 
-        /* =========================================================
-           COOKIE & STORAGE PERSISTENCE UTILITIES
-           ========================================================= */
-        function setCookie(name, value, days = 365) {
-            const expires = new Date(Date.now() + days * 864e5).toUTCString();
-            document.cookie = name + '=' + encodeURIComponent(JSON.stringify(value)) + '; expires=' + expires + '; path=/; SameSite=Lax';
-        }
-
-        function getCookie(name) {
-            return document.cookie.split('; ').reduce((r, v) => {
-                const parts = v.split('=');
-                return parts[0] === name ? JSON.parse(decodeURIComponent(parts[1])) : r;
-            }, null);
-        }
-
-        function getStorage(key) {
+        // --- STORAGE UTILS ---
+        function loadSettings() {
             try {
-                const local = localStorage.getItem(key);
-                if (local) return JSON.parse(local);
-            } catch (e) {}
-            return getCookie(key);
+                const saved = localStorage.getItem('matchit_settings');
+                if (saved) settings = { ...settings, ...JSON.parse(saved) };
+            } catch(e) {}
+            document.getElementById('vib-toggle').checked = settings.vibration;
+            document.getElementById('spice-slider').value = settings.spiciness;
+            updateSpiceDisplay();
+            applyTheme();
         }
 
-        function saveStorage(key, value) {
-            try {
-                localStorage.setItem(key, JSON.stringify(value));
-            } catch (e) {}
-            setCookie(key, value, 365);
+        function saveSettings() {
+            settings.vibration = document.getElementById('vib-toggle').checked;
+            settings.spiciness = parseInt(document.getElementById('spice-slider').value);
+            try { localStorage.setItem('matchit_settings', JSON.stringify(settings)); } catch(e) {}
+            updateSpiceDisplay();
+            applyTheme();
         }
 
-        function normalizeText(text) {
-            return text
-                .toLocaleLowerCase(lang === 'el' ? 'el-GR' : 'en-US')
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^\p{L}\p{N}]+/gu, ' ')
-                .trim();
+        function updateSpiceDisplay() {
+            const labels = ["CHILL 😇", "AWKWARD 😬", "NSFW 🔥"];
+            const text = labels[settings.spiciness - 1];
+            document.getElementById('spice-display').innerText = text;
+            document.getElementById('home-spice-label').innerText = "SPICE: " + text;
         }
 
-        /* PERMANENT AI QUESTION PERSISTENCE (NEVER REPEAT AGAIN) */
-        function getSeenAIQuestions() {
-            return getStorage('matchit_ai_seen') || [];
+        function applyTheme() {
+            document.body.style.setProperty('--bg-color', `var(--theme-${settings.spiciness}-bg)`);
+            document.body.style.setProperty('--stroke-color', `var(--theme-${settings.spiciness}-stroke)`);
+            document.body.style.setProperty('--accent-bg', `var(--theme-${settings.spiciness}-accent)`);
         }
 
-        function registerSeenAIQuestion(text) {
-            const seen = getSeenAIQuestions();
-            const norm = normalizeText(text);
-            if (!seen.includes(norm)) {
-                seen.push(norm);
-                saveStorage('matchit_ai_seen', seen);
-            }
+        function vibrate(pattern) {
+            if (settings.vibration && navigator.vibrate) navigator.vibrate(pattern);
         }
 
-        /* 48-HOUR FALLBACK EXPIRATION TIMESTAMPS */
-        function getBackupTimestamps() {
-            const data = getStorage('matchit_backup_ts') || {};
-            const now = Date.now();
-            // Prune entries older than 48 hours
-            for (let k in data) {
-                if (now - data[k] > EXPIRE_48H_MS) delete data[k];
-            }
-            return data;
+        // --- AI & FALLBACK LOGIC ---
+        function getStorageObj(key) {
+            try { return JSON.parse(localStorage.getItem(key)) || {}; } catch(e) { return {}; }
+        }
+        function saveStorageObj(key, obj) {
+            try { localStorage.setItem(key, JSON.stringify(obj)); } catch(e) {}
         }
 
-        function registerBackupUsed(text) {
-            const data = getBackupTimestamps();
-            data[normalizeText(text)] = Date.now();
-            saveStorage('matchit_backup_ts', data);
-        }
+        function normalize(text) { return text.toLowerCase().replace(/[^a-z0-9α-ωάέήίόύώ]/gi, '').trim(); }
 
         function getFreshFallback(isPunishment) {
-            const poolKey = isPunishment ? 'punishment' : (isAdult ? 'adult' : 'teen');
+            const poolKey = isPunishment ? 'punishment' : (settings.spiciness === 1 ? 'chill' : (settings.spiciness === 2 ? 'awkward' : 'nsfw'));
             const pool = FALLBACKS[lang][poolKey];
-            const timestamps = getBackupTimestamps();
+            const ts = getStorageObj('matchit_fallbacks_ts');
             const now = Date.now();
 
-            // Filter out fallback questions used in the last 48 hours
-            const available = pool.filter(q => {
-                const norm = normalizeText(q);
-                const lastUsed = timestamps[norm];
-                return !lastUsed || (now - lastUsed > EXPIRE_48H_MS);
-            });
-
-            let chosen = "";
-            if (available.length > 0) {
-                chosen = available[Math.floor(Math.random() * available.length)];
-            } else {
-                // If all fallback questions were used within 48h, pick the least recently used one
-                chosen = pool.reduce((oldest, current) => {
-                    const tOld = timestamps[normalizeText(oldest)] || 0;
-                    const tCurr = timestamps[normalizeText(current)] || 0;
-                    return tCurr < tOld ? current : oldest;
-                }, pool[0]);
-            }
-
-            registerBackupUsed(chosen);
+            const available = pool.filter(q => !ts[normalize(q)] || (now - ts[normalize(q)] > EXPIRE_48H_MS));
+            
+            let chosen = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : pool[0];
+            
+            ts[normalize(chosen)] = now;
+            saveStorageObj('matchit_fallbacks_ts', ts);
             return chosen;
         }
 
-        /* =========================================================
-           GAME CONTROLLER LOGIC
-           ========================================================= */
-        function toggleAdultMode() {
-            isAdult = !isAdult;
-            document.body.classList.toggle('mode-18plus', isAdult);
-            const modeBtn = document.getElementById('mode-text');
-            modeBtn.innerText = isAdult ? "MODE: 18+ 🔥" : "MODE: 18- 😇";
-        }
+        async function fetchQuestion(isPunishment = false) {
+            const seen = getStorageObj('matchit_ai_seen');
+            const seenArr = Object.keys(seen);
 
-        async function fetchAI(isPunishment = false, isRetry = false) {
-            const seenQuestions = getSeenAIQuestions();
             try {
                 const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 10000);
+                const timeout = setTimeout(() => controller.abort(), 8000);
                 
                 const response = await fetch("/api/message", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        lang,
-                        isPunishment,
-                        isAdult,
-                        exclude: seenQuestions.slice(-50) // Pass recent seen questions to server
-                    }),
+                    body: JSON.stringify({ lang, isPunishment, spiciness: settings.spiciness, exclude: seenArr.slice(-40) }),
                     signal: controller.signal
                 });
                 clearTimeout(timeout);
 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
+                if (!response.ok) throw new Error("HTTP Error");
                 const data = await response.json();
-                let aiText = data?.text;
+                
+                if (data.source === "fallback" || !data.text) throw new Error("Backend Fallback");
 
-                if (!aiText) throw new Error("Empty response");
-
-                aiText = aiText.trim().split('\n')[0].replace(/^[0-9.\-\s]+/, '').trim();
-                aiText = aiText.replace(/^["'«]|["'»]$/g, '');
-
-                const normKey = normalizeText(aiText);
-
-                // Check if this AI question has EVER been generated for this user
-                if (seenQuestions.includes(normKey)) {
-                    if (!isRetry) return await fetchAI(isPunishment, true);
-                    return getFreshFallback(isPunishment);
-                }
-
-                registerSeenAIQuestion(aiText);
-                return aiText;
+                let text = data.text.trim().replace(/^["'«\-0-9.\s]+|["'»]+$/g, '');
+                
+                // Save AI question to never repeat
+                seen[normalize(text)] = 1;
+                saveStorageObj('matchit_ai_seen', seen);
+                
+                return { text, source: "ai" };
             } catch (e) {
-                console.warn(`Fetch error or offline. Using 48h-unique fallback:`, e.message);
+                console.warn("Using local fallback:", e.message);
+                return { text: getFreshFallback(isPunishment), source: "fallback" };
             }
-
-            // Return a backup question guaranteed to respect the 48-hour rule
-            return getFreshFallback(isPunishment);
         }
 
+        // --- NAVIGATION & UI FLOW ---
         function nav(id) {
+            vibrate(30);
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
-            document.getElementById('back-btn').style.display = (id === 'home') ? 'none' : 'block';
         }
 
         function goHome() {
             clearInterval(timer);
             document.body.classList.remove('punish-mode');
+            document.getElementById('fallback-warning').classList.remove('active');
             nav('home');
         }
 
+        function openSettings() { document.getElementById('settings-modal').classList.add('active'); vibrate(20); }
+        function closeSettings() { document.getElementById('settings-modal').classList.remove('active'); vibrate(20); }
+
         function start(l) {
             lang = l;
-            const modeBadge = isAdult ? '<span class="badge-18">18+ 🔥</span>' : '<span class="badge-18">18-</span>';
-            document.getElementById('g-title').innerHTML = `MATCH IT! ${modeBadge}`;
+            skips = 3;
+            round = 1;
             nav('game');
-            nextQ();
+            loadNextState();
         }
 
-        async function nextQ() {
+        function skipQ() {
+            if (skips <= 0) { vibrate([50, 50, 50]); return; }
+            skips--;
+            vibrate(40);
+            loadNextState();
+        }
+
+        function nextQ() {
+            vibrate(40);
+            round++;
+            loadNextState();
+        }
+
+        async function loadNextState() {
             clearInterval(timer);
             document.body.classList.remove('punish-mode');
-
+            
             const myToken = ++requestToken;
             const qEl = document.getElementById('q-text');
-            const iEl = document.getElementById('g-instr');
             const bEl = document.getElementById('next-btn');
+            const sEl = document.getElementById('skip-btn');
+            const alertEl = document.getElementById('fallback-warning');
+            
+            // Update HUD
+            document.getElementById('round-counter').innerText = `RND ${round}`;
+            document.getElementById('skip-counter').innerText = `⚡ ${skips}`;
+            sEl.classList.toggle('disabled', skips === 0);
+            alertEl.classList.remove('active');
 
             bEl.classList.add('disabled');
-
-            qEl.classList.add('loading');
-            qEl.innerText = lang === 'en' ? "AI IS THINKING" : "ΤΟ AI ΣΚΕΦΤΕΤΑΙ";
-            iEl.innerText = lang === 'en' ? "Give the match to the person who" : "Δώσε το σπίρτο στο άτομο που";
+            sEl.classList.add('disabled');
+            
+            qEl.innerText = lang === 'en' ? "AI IS THINKING..." : "ΤΟ AI ΣΚΕΦΤΕΤΑΙ...";
+            document.getElementById('g-instr').innerText = lang === 'en' ? "Give the match to whoever..." : "Δώσε το σπίρτο σε όποιον/α...";
             bEl.innerText = lang === 'en' ? "GOT IT!" : "ΤΟ 'ΧΩ!";
-
+            
             time = 30;
             const timerEl = document.getElementById('timer');
             timerEl.innerText = "30";
             timerEl.classList.remove('warning');
 
-            const result = await fetchAI(false);
+            const result = await fetchQuestion(false);
+            if (myToken !== requestToken) return;
+
+            // Handle AI Failure UI Animation
+            if (result.source === "fallback") {
+                vibrate([100, 50, 100]);
+                alertEl.innerText = lang === 'en' ? "AI FAILED: FALLBACK LOADED" : "ΣΦΑΛΜΑ AI: ΕΦΕΔΡΙΚΗ ΕΡΩΤΗΣΗ";
+                alertEl.classList.add('active');
+                qEl.innerText = lang === 'en' ? "LOADING BACKUP..." : "ΦΟΡΤΩΣΗ BACKUP...";
+                await new Promise(r => setTimeout(r, 800)); // Dramatic pause
+            }
 
             if (myToken !== requestToken) return;
 
-            qEl.classList.remove('loading');
-            qEl.innerText = result;
-            qEl.classList.remove('question-arrive');
-            void qEl.offsetWidth;
-            qEl.classList.add('question-arrive');
+            qEl.innerText = result.text;
+            qEl.style.transform = 'scale(0.95)'; setTimeout(() => qEl.style.transform = 'scale(1)', 50);
             bEl.classList.remove('disabled');
+            if(skips > 0) sEl.classList.remove('disabled');
 
             timer = setInterval(() => {
                 time--;
-                const timerEl = document.getElementById('timer');
                 timerEl.innerText = time;
                 timerEl.classList.toggle('warning', time <= 5 && time > 0);
+                if (time <= 5 && time > 0) vibrate(50);
                 if (time <= 0) {
                     clearInterval(timer);
                     timerEl.classList.remove('warning');
@@ -631,26 +552,36 @@
 
         async function triggerPunishment() {
             const myToken = requestToken;
+            vibrate([500, 100, 500]);
             document.body.classList.add('punish-mode');
+            
             const qEl = document.getElementById('q-text');
-            const iEl = document.getElementById('g-instr');
             const bEl = document.getElementById('next-btn');
-
+            const sEl = document.getElementById('skip-btn');
+            const alertEl = document.getElementById('fallback-warning');
+            
             bEl.classList.add('disabled');
-            iEl.innerText = lang === 'en' ? "TIME EXPIRED: PUNISHMENT" : "ΤΕΛΟΣ ΧΡΟΝΟΥ: ΠΟΙΝΗ";
-            qEl.innerText = lang === 'en' ? "GENERATING TASK" : "ΔΗΜΙΟΥΡΓΙΑ ΠΟΙΝΗΣ";
+            sEl.classList.add('disabled');
+            alertEl.classList.remove('active');
+
+            document.getElementById('g-instr').innerText = lang === 'en' ? "TIME EXPIRED: PUNISHMENT" : "ΤΕΛΟΣ ΧΡΟΝΟΥ: ΠΟΙΝΗ";
+            qEl.innerText = lang === 'en' ? "GENERATING TASK..." : "ΔΗΜΙΟΥΡΓΙΑ ΠΟΙΝΗΣ...";
             bEl.innerText = lang === 'en' ? "I DID IT" : "ΤΟ ΕΚΑΝΑ";
 
-            const result = await fetchAI(true);
+            const result = await fetchQuestion(true);
             if (myToken !== requestToken) return;
 
-            qEl.innerText = result;
-            qEl.classList.remove('question-arrive');
-            void qEl.offsetWidth;
-            qEl.classList.add('question-arrive');
+            qEl.innerText = result.text;
             bEl.classList.remove('disabled');
-            if (window.navigator.vibrate) window.navigator.vibrate([500, 100, 500]);
+            // Allow skipping punishments if they have skips left
+            if(skips > 0) {
+                sEl.classList.remove('disabled');
+                sEl.innerText = lang === 'en' ? "SKIP ⚡" : "ΠΑΣΟ ⚡";
+            }
         }
+
+        // Init
+        loadSettings();
     </script>
 </body>
 </html>
