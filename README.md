@@ -1,4 +1,4 @@
-# Match It
+# Match It!
 
 A mobile party game that generates “Who is most likely to…” questions and
 safe punishments in English or Greek using the Gemini API.
