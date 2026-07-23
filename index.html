@@ -121,6 +121,15 @@
         let requestToken = 0;
         let recentResponses = new Set(); // prevent repeats within same session
 
+        function normalizeResponse(text) {
+            return text
+                .toLocaleLowerCase(lang === 'el' ? 'el-GR' : 'en-US')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^\p{L}\p{N}]+/gu, ' ')
+                .trim();
+        }
+
         async function fetchAI(isPunishment = false, isRetry = false) {
             try {
                 const controller = new AbortController();
@@ -130,7 +139,11 @@
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ lang, isPunishment }),
+                    body: JSON.stringify({
+                        lang,
+                        isPunishment,
+                        exclude: Array.from(recentResponses).slice(-12)
+                    }),
                     signal: controller.signal
                 });
                 clearTimeout(timeout);
@@ -153,7 +166,11 @@
                 aiText = aiText.replace(/^["'«]|["'»]$/g, '');
 
                 // Only retry once for a repeat — never chain retries, keeps latency predictable.
-                if (recentResponses.has(aiText) && !isRetry && recentResponses.size < 20) {
+                const responseKey = normalizeResponse(aiText);
+                const isRepeat = Array.from(recentResponses)
+                    .some(previous => normalizeResponse(previous) === responseKey);
+
+                if (isRepeat && !isRetry && recentResponses.size < 20) {
                     return await fetchAI(isPunishment, true);
                 }
 

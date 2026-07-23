@@ -89,10 +89,29 @@ const fallbackLines = {
 
 const fallbackPositions = new Map();
 
-function nextFallback(language, kind) {
+function normalizeLine(text) {
+  return text
+    .toLocaleLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+function nextFallback(language, kind, excluded = []) {
   const key = `${language}:${kind}`;
   const lines = fallbackLines[language][kind];
-  const position = fallbackPositions.get(key) ?? Math.floor(Math.random() * lines.length);
+  const excludedKeys = new Set(excluded.map(normalizeLine));
+  let position = fallbackPositions.get(key) ?? Math.floor(Math.random() * lines.length);
+
+  for (let offset = 0; offset < lines.length; offset++) {
+    const candidate = lines[(position + offset) % lines.length];
+    if (!excludedKeys.has(normalizeLine(candidate))) {
+      fallbackPositions.set(key, position + offset + 1);
+      return candidate;
+    }
+  }
+
   fallbackPositions.set(key, position + 1);
   return lines[position % lines.length];
 }
@@ -133,6 +152,12 @@ const server = createServer(async (request, response) => {
       const language = body.lang === "el" ? "el" : "en";
       const kind = body.isPunishment === true ? "punishment" : "question";
       const prompt = prompts[language][kind];
+      const excluded = Array.isArray(body.exclude)
+        ? body.exclude.filter(item => typeof item === "string").slice(-12)
+        : [];
+      const exclusionInstruction = excluded.length
+        ? `\nDo not repeat or closely paraphrase any of these previous responses:\n- ${excluded.join("\n- ")}`
+        : "";
 
       const requestBody = JSON.stringify({
         systemInstruction: {
@@ -140,7 +165,7 @@ const server = createServer(async (request, response) => {
         },
         contents: [{
           role: "user",
-          parts: [{ text: prompt.user }]
+          parts: [{ text: prompt.user + exclusionInstruction }]
         }],
         generationConfig: {
           maxOutputTokens: 256,
@@ -175,7 +200,7 @@ const server = createServer(async (request, response) => {
 
         if (upstream.status === 429 || upstream.status >= 500) {
           sendJson(response, 200, {
-            text: nextFallback(language, kind),
+            text: nextFallback(language, kind, excluded),
             source: "fallback"
           });
           return;
