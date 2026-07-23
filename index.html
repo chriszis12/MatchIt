@@ -135,8 +135,8 @@
         .instr-zone { width: 100%; min-height: 70px; display: flex; align-items: center; justify-content: center; padding: 10px 20px; }
         .q-zone { flex-grow: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 30px; text-align: center; }
         .q-text { 
-            font-size: 2rem; 
-            line-height: 1.5; 
+            font-size: 1.9rem; 
+            line-height: 1.45; 
             color: var(--stroke-color);
             font-weight: 400;
             transition: color 0.4s ease;
@@ -208,13 +208,6 @@
             75% { transform: translateX(-2px); }
             100% { transform: translateX(0); }
         }
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                scroll-behavior: auto !important;
-            }
-        }
     </style>
 </head>
 <body>
@@ -234,8 +227,8 @@
             <div class="btn outline-text" style="text-transform: none;" onclick="start('en')">English</div>
             <div class="btn outline-text" style="font-size: 1.2rem;" onclick="nav('about')">ABOUT</div>
         </div>
-        <div class="outline-text" style="font-size: 0.8rem;">COPYRIGHT CHRISTOS ZISOPOULOS IN COLLABORATION WITH SAFEWORLD, CHRISTOS ZISOPOULOS 2026, SAFEWORLD 2026</div>
-        <div class="version-label">v0.3.0</div>
+        <div class="outline-text" style="font-size: 0.8rem;">COPYRIGHT CHRISTOS ZISOPOULOS 2026</div>
+        <div class="version-label">v0.4.0</div>
     </div>
 
     <!-- ABOUT SCREEN -->
@@ -244,7 +237,7 @@
         <div style="width:85%; font-size: 1.1rem; line-height: 1.5; text-align: center; color: var(--stroke-color);">
             <p>This game is designed for mobile fun with friends.</p>
             <p>Pass the phone to the person who fits the AI prompt within <b>30 seconds</b>.</p>
-            <p>Toggle <b>18+ Mode</b> on the main screen for explicit, chaotic party questions! 🔥</p>
+            <p>Toggle <b>18+ Mode</b> on the main screen for spicy, chaotic adult party questions! 🔥</p>
             <p>Fail = AI Punishment.</p>
             <p style="font-size: 0.85rem;">Contact: support.matchit@gmail.com</p>
         </div>
@@ -272,14 +265,180 @@
         let timer;
         let requestToken = 0;
 
-        function toggleAdultMode() {
-            isAdult = !isAdult;
-            document.body.classList.toggle('mode-18plus', isAdult);
-            const modeBtn = document.getElementById('mode-text');
-            modeBtn.innerText = isAdult ? "MODE: 18+ 🔥" : "MODE: 18- 😇";
+        const EXPIRE_48H_MS = 48 * 60 * 60 * 1000; // 48 Hours in milliseconds
+
+        /* =========================================================
+           10x EXPANDED FALLBACK QUESTION POOLS
+           ========================================================= */
+        const FALLBACKS = {
+            en: {
+                teen: [
+                    "Would take the last parachute from a crashing plane.",
+                    "Replies to a text message three business days later.",
+                    "Cancels plans five minutes before everyone arrives.",
+                    "Loses their phone while holding it in their hand.",
+                    "Eats all the party snacks before anyone else gets one.",
+                    "Laughs uncontrollably at the worst possible moment.",
+                    "Accidentally likes a 7-year-old photo during late night stalking.",
+                    "Arrives late to their own birthday party.",
+                    "Opens the fridge ten times expecting new food to appear.",
+                    "Gets lost while driving on a completely straight road.",
+                    "Sends a screenshot to the exact person in the screenshot.",
+                    "Cries hysterically over a fictional movie character.",
+                    "Buys something useless just because it was on 50% discount.",
+                    "Gives life-changing advice but never follows any of it.",
+                    "Starts cleaning their room and ends up reading 2018 text messages.",
+                    "Wins an argument using completely made-up statistics.",
+                    "Wears sunglasses indoors at night.",
+                    "Forgets someone's name two seconds after being introduced.",
+                    "Makes a dramatic exit and immediately walks back in.",
+                    "Brings random emergency items that everyone surprisingly needs.",
+                    "Spends an hour choosing what movie to watch and then falls asleep.",
+                    "Accidentally calls their teacher or boss 'Mom'.",
+                    "Takes 80 selfies and posts absolutely zero of them.",
+                    "Pretends to check their phone when walking in the wrong direction.",
+                    "Gets overly competitive during a friendly casual board game."
+                ],
+                adult: [
+                    "Would have sex on an office desk at work!",
+                    "Would secretly search through their partner's phone for cheating evidence!",
+                    "Pass the match to whoever would join the mile-high club in an airplane bathroom!",
+                    "Who in this room would you want to give you a lap dance?",
+                    "Who in this room do you think has the biggest talent in oral sex?",
+                    "Pass the match to whoever would send a risky late-night text to someone in this room!",
+                    "Who is most likely to stop having sex completely after getting married?",
+                    "Who in this room do you think has the wildest secret fantasies?",
+                    "Pass the match to whoever would hook up with a friend's ex!",
+                    "Who do you think has sent the most extreme nudes?",
+                    "Who in this room would kiss someone here right now if no one was looking?",
+                    "Pass the match to whoever has had sex in the strangest public place!",
+                    "Who would have a one-night stand and ghost them immediately after?",
+                    "Who do you think owns the most secret sex toys at home?",
+                    "Pass the match to whoever would go on a date just for free high-end food!",
+                    "Who looks totally innocent but is actually the wild animal in bed?",
+                    "Who has used the fakest lines just to sleep with someone?",
+                    "Pass the match to whoever would agree to a threesome without hesitation!",
+                    "Who would accidentally send a spicy photo to the family group chat?",
+                    "Who do you think has hooked up in a car parked in a crowded spot?",
+                    "Pass the match to whoever has hooked up with someone whose name they didn't know!",
+                    "Who here would accept $10,000 to post their search history online?",
+                    "Who is most likely to have a secret secondary dating profile?",
+                    "Who here would flirt with a police officer to get out of a speeding ticket?",
+                    "Pass the match to whoever has lied about their body count!"
+                ],
+                punishment: [
+                    "Do 10 jumping jacks while declaring you are a fake friend!",
+                    "Speak like a movie villain until your next turn.",
+                    "Pretend the floor is lava for fifteen seconds.",
+                    "Sing your next sentence like a dramatic opera star.",
+                    "Walk like a penguin around the entire room.",
+                    "Give an emotional acceptance speech for winning absolutely nothing.",
+                    "Let the person to your right send a text emoji from your phone.",
+                    "Act like a cat until someone guesses what you are.",
+                    "Speak in a posh accent for the next two rounds.",
+                    "Do a slow-motion dramatic faint right now!"
+                ]
+            },
+            el: {
+                teen: [
+                    "Θα έπαιρνε το τελευταίο αλεξίπτωτο από ένα αεροπλάνο που πέφτει.",
+                    "Θα απαντούσε σε μήνυμα μετά από 3 εργάσιμες μέρες.",
+                    "Θα ακύρωνε σχέδια 5 λεπτά πριν τη συνάντηση.",
+                    "Θα έχανε το κινητό ενώ το κρατάει στο χέρι του.",
+                    "Θα έτρωγε όλο το φαγητό πριν φτάσουν οι άλλοι.",
+                    "Θα γελούσε στην πιο ακατάλληλη και σοβαρή στιγμή.",
+                    "Θα έκανε Like κατά λάθος σε φωτογραφία 7 χρόνων στο Instagram.",
+                    "Θα αργούσε στο ίδιο του το πάρτι γενεθλίων.",
+                    "Θα άνοιγε το ψυγείο 10 φορές περιμένοντας να εμφανιστεί φαγητό.",
+                    "Θα χανόταν ενώ ακολουθεί έναν εντελώς ίσιο δρόμο.",
+                    "Θα έστελνε screenshot στο άτομο που είναι μέσα στο screenshot.",
+                    "Θα έκλαιγε για έναν φανταστικό χαρακτήρα σε ταινία.",
+                    "Θα αγόραζε κάτι άχρηστο μόνο και μόνο επειδή είχε 50% έκπτωση.",
+                    "Θα έδινε τις καλύτερες συμβουλές αλλά δεν θα ακολουθούσε καμία.",
+                    "Θα ξεκινούσε καθάρισμα και θα κατέληγε να διαβάζει παλιά μηνύματα.",
+                    "Θα τσακωνόταν με κάποιον χρησιμοποιώντας εντελώς ψεύτικα στοιχεία.",
+                    "Θα φορούσε γυαλιά ηλίου μέσα στη νύχτα.",
+                    "Θα ξεχνούσε το όνομα κάποιου 2 δευτερόλεπτα αφού συστήθηκαν.",
+                    "Θα έκανε δραματική έξοδο από το δωμάτιο και θα επέστρεφε αμέσως.",
+                    "Θα έπαιρνε μαζί του πράγματα που κανείς δεν ζήτησε αλλά όλοι χρειάστηκαν.",
+                    "Θα έψαχνε 1 ώρα τι ταινία θα δει και θα αποκοιμιόταν στα credits.",
+                    "Θα έβγαζε 50 φωτογραφίες και δεν θα ανέβαζε καμία.",
+                    "Θα προσποιόταν ότι κοιτάει το GPS ενώ απλά έκανε λάθος δρόμο.",
+                    "Θα γινόταν υπερβολικά ανταγωνιστικός/η σε ένα χαλαρό επιτραπέζιο."
+                ],
+                adult: [
+                    "Δώσε τον αναπτήρα σε αυτόν/ή που πιστεύεις ότι θα έκανε σεξ πάνω σε ένα γραφείο σε εταιρικό χώρο!",
+                    "Ποιος/α πιστεύεις ότι θα έψαχνε το κινητό του συντρόφου του για να δει αν τον/την απατάει;",
+                    "Δώσε τον αναπτήρα σε αυτόν/ή που πιστεύεις ότι θα έκανε σεξ σε αεροπλάνο!",
+                    "Ποιο άτομο του αντίθετου φύλου θα ήθελες να σου χορέψει lap dance;",
+                    "Ποιο άτομο έχει το μεγαλύτερο ταλέντο στο στοματικό σεξ;",
+                    "Δώσε τον αναπτήρα σε αυτόν/ή που πιστεύεις ότι θα έγραφε τολμηρό ερωτικό γράμμα σε κάποιον/α από την παρέα!",
+                    "Ποιος/α πιστεύεις πως θα κάνει μια φορά την εβδομάδα έως καθόλου σεξ μετά τον γάμο και τα παιδιά;",
+                    "Ποιο άτομο από την παρέα έχει τις πιο περίεργες ερωτικές φαντασιώσεις;",
+                    "Δώσε τον αναπτήρα σε αυτόν/ή που θα έκανε secret hookup με πρώην φίλου/ης!",
+                    "Ποιος/α πιστεύεις ότι έχει στείλει τις πιο ακραίες γυμνές φωτογραφίες (nudes);",
+                    "Ποιο άτομο θα φιλούσε κάποιον από την παρέα αυτή τη στιγμή αν δεν έβλεπε κανείς;",
+                    "Δώσε τον αναπτήρα σε αυτόν/ή που έχει κάνει σεξ στο πιο παράξενο δημόσιο μέρος!",
+                    "Ποιος/α θα έκανε One Night Stand και μετά θα εξαφανιζόταν χωρίς μήνυμα;",
+                    "Ποιο άτομο πιστεύεις ότι έχει τα περισσότερα κρυφά ερωτικά παιχνίδια στο σπίτι;",
+                    "Δώσε τον αναπτήρα σε αυτόν/ή που θα έβγαινε ραντεβού μόνο για δωρεάν φαγητό/ποτό!",
+                    "Ποιος/α πιστεύεις ότι είναι ο πιο άτακτος/η στο κρεβάτι παρά το αθώο του ύφος;",
+                    "Ποιος/α έχει πει τα πιο ψεύτικα κομπλιμέντα για να ρίξει κάποιον/α στο κρεβάτι;",
+                    "Δώσε τον αναπτήρα σε αυτόν/ή που θα έκανε τρίο χωρίς δεύτερη σκέψη!",
+                    "Ποιος/α θα έστελνε κατά λάθος πονηρό μήνυμα στην οικογενειακή ομάδα στο Viber;",
+                    "Ποιο άτομο πιστεύεις ότι έχει κάνει σεξ στο αυτοκίνητο σε πολυσύχναστο σημείο;",
+                    "Δώσε τον αναπτήρα σε αυτόν/ή που έχει κάνει σεξ με άτομο που δεν θυμόταν το όνομά του!",
+                    "Ποιος/α θα δεχόταν 10.000€ για να δείξει το ιστορικό αναζήτησής του στην παρέα;",
+                    "Ποιος/α πιστεύεις ότι έχει κρυφό δεύτερο προφίλ σε dating app;",
+                    "Ποιος/α θα έκανε φλερτ σε αστυνομικό για να γλιτώσει κλήση;",
+                    "Δώσε τον αναπτήρα σε αυτόν/ή που έχει πει ψέματα για τον αριθμό των ερωτικών του συντρόφων!"
+                ],
+                punishment: [
+                    "Κάνε 10 αναπηδήσεις φωνάζοντας ότι είσαι δίπουλος φίλος!",
+                    "Μίλα σαν κακός ταινίας μέχρι τον επόμενο γύρο.",
+                    "Κάνε πως το πάτωμα είναι λάβα για 15 δευτερόλεπτα.",
+                    "Τραγούδησε την επόμενη πρότασή σου σαν όπερα.",
+                    "Περπάτησε σαν πιγκουίνος γύρω από το δωμάτιο.",
+                    "Κάνε ευχαριστήριο λόγο επειδή κέρδισες απολύτως τίποτα.",
+                    "Άφησε τον διπλανό σου να στείλει ένα emoji από το κινητό σου.",
+                    "Κάνε τη γάτα μέχρι κάποιος να το μαντέψει.",
+                    "Μίλα με χωριάτικη προφορά για τους επόμενους δύο γύρους.",
+                    "Κάνε την πιο δραματική λιποθυμία σε αργή κίνηση!"
+                ]
+            }
+        };
+
+        /* =========================================================
+           COOKIE & STORAGE PERSISTENCE UTILITIES
+           ========================================================= */
+        function setCookie(name, value, days = 365) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = name + '=' + encodeURIComponent(JSON.stringify(value)) + '; expires=' + expires + '; path=/; SameSite=Lax';
         }
 
-        function normalizeResponse(text) {
+        function getCookie(name) {
+            return document.cookie.split('; ').reduce((r, v) => {
+                const parts = v.split('=');
+                return parts[0] === name ? JSON.parse(decodeURIComponent(parts[1])) : r;
+            }, null);
+        }
+
+        function getStorage(key) {
+            try {
+                const local = localStorage.getItem(key);
+                if (local) return JSON.parse(local);
+            } catch (e) {}
+            return getCookie(key);
+        }
+
+        function saveStorage(key, value) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch (e) {}
+            setCookie(key, value, 365);
+        }
+
+        function normalizeText(text) {
             return text
                 .toLocaleLowerCase(lang === 'el' ? 'el-GR' : 'en-US')
                 .normalize('NFD')
@@ -288,34 +447,82 @@
                 .trim();
         }
 
-        function historyKey(isPunishment) {
-            return `matchit-history-v2:${lang}:${isAdult ? 'adult' : 'teen'}:${isPunishment ? 'punishment' : 'question'}`;
+        /* PERMANENT AI QUESTION PERSISTENCE (NEVER REPEAT AGAIN) */
+        function getSeenAIQuestions() {
+            return getStorage('matchit_ai_seen') || [];
         }
 
-        function getResponseHistory(isPunishment) {
-            try {
-                const saved = JSON.parse(localStorage.getItem(historyKey(isPunishment)) || '[]');
-                return Array.isArray(saved) ? saved.filter(item => typeof item === 'string') : [];
-            } catch {
-                return [];
+        function registerSeenAIQuestion(text) {
+            const seen = getSeenAIQuestions();
+            const norm = normalizeText(text);
+            if (!seen.includes(norm)) {
+                seen.push(norm);
+                saveStorage('matchit_ai_seen', seen);
             }
         }
 
-        function rememberResponse(text, isPunishment) {
-            const history = getResponseHistory(isPunishment);
-            history.push(text);
-            try {
-                localStorage.setItem(historyKey(isPunishment), JSON.stringify(history.slice(-40)));
-            } catch {
-                // Ignore storage blocks in incognito mode
+        /* 48-HOUR FALLBACK EXPIRATION TIMESTAMPS */
+        function getBackupTimestamps() {
+            const data = getStorage('matchit_backup_ts') || {};
+            const now = Date.now();
+            // Prune entries older than 48 hours
+            for (let k in data) {
+                if (now - data[k] > EXPIRE_48H_MS) delete data[k];
             }
+            return data;
+        }
+
+        function registerBackupUsed(text) {
+            const data = getBackupTimestamps();
+            data[normalizeText(text)] = Date.now();
+            saveStorage('matchit_backup_ts', data);
+        }
+
+        function getFreshFallback(isPunishment) {
+            const poolKey = isPunishment ? 'punishment' : (isAdult ? 'adult' : 'teen');
+            const pool = FALLBACKS[lang][poolKey];
+            const timestamps = getBackupTimestamps();
+            const now = Date.now();
+
+            // Filter out fallback questions used in the last 48 hours
+            const available = pool.filter(q => {
+                const norm = normalizeText(q);
+                const lastUsed = timestamps[norm];
+                return !lastUsed || (now - lastUsed > EXPIRE_48H_MS);
+            });
+
+            let chosen = "";
+            if (available.length > 0) {
+                chosen = available[Math.floor(Math.random() * available.length)];
+            } else {
+                // If all fallback questions were used within 48h, pick the least recently used one
+                chosen = pool.reduce((oldest, current) => {
+                    const tOld = timestamps[normalizeText(oldest)] || 0;
+                    const tCurr = timestamps[normalizeText(current)] || 0;
+                    return tCurr < tOld ? current : oldest;
+                }, pool[0]);
+            }
+
+            registerBackupUsed(chosen);
+            return chosen;
+        }
+
+        /* =========================================================
+           GAME CONTROLLER LOGIC
+           ========================================================= */
+        function toggleAdultMode() {
+            isAdult = !isAdult;
+            document.body.classList.toggle('mode-18plus', isAdult);
+            const modeBtn = document.getElementById('mode-text');
+            modeBtn.innerText = isAdult ? "MODE: 18+ 🔥" : "MODE: 18- 😇";
         }
 
         async function fetchAI(isPunishment = false, isRetry = false) {
+            const seenQuestions = getSeenAIQuestions();
             try {
-                const responseHistory = getResponseHistory(isPunishment);
                 const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 12000);
+                const timeout = setTimeout(() => controller.abort(), 10000);
+                
                 const response = await fetch("/api/message", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -323,15 +530,13 @@
                         lang,
                         isPunishment,
                         isAdult,
-                        exclude: responseHistory.slice(-30)
+                        exclude: seenQuestions.slice(-50) // Pass recent seen questions to server
                     }),
                     signal: controller.signal
                 });
                 clearTimeout(timeout);
 
-                if (!response.ok) {
-                    throw new Error(`${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 const data = await response.json();
                 let aiText = data?.text;
@@ -341,35 +546,22 @@
                 aiText = aiText.trim().split('\n')[0].replace(/^[0-9.\-\s]+/, '').trim();
                 aiText = aiText.replace(/^["'«]|["'»]$/g, '');
 
-                const responseKey = normalizeResponse(aiText);
-                const isRepeat = responseHistory.some(previous => normalizeResponse(previous) === responseKey);
+                const normKey = normalizeText(aiText);
 
-                if (isRepeat && !isRetry) {
-                    return await fetchAI(isPunishment, true);
+                // Check if this AI question has EVER been generated for this user
+                if (seenQuestions.includes(normKey)) {
+                    if (!isRetry) return await fetchAI(isPunishment, true);
+                    return getFreshFallback(isPunishment);
                 }
 
-                rememberResponse(aiText, isPunishment);
+                registerSeenAIQuestion(aiText);
                 return aiText;
             } catch (e) {
-                console.error(`API fetch error:`, e.message);
+                console.warn(`Fetch error or offline. Using 48h-unique fallback:`, e.message);
             }
 
-            // Fallbacks if backend is offline/erroring
-            if (isPunishment) {
-                return lang === 'en' 
-                    ? "Do 10 jumping jacks while declaring you are a terrible friend!" 
-                    : "Κάνε 10 αναπηδήσεις φωνάζοντας ότι είσαι δίπουλος φίλος!";
-            }
-            
-            if (isAdult) {
-                return lang === 'en'
-                    ? "Would have sex on an office desk at a workplace!"
-                    : "Πιστεύεις ότι θα έκανε σεξ πάνω σε ένα γραφείο σε εταιρικό χώρο!";
-            } else {
-                return lang === 'en'
-                    ? "Would take the last parachute from a crashing plane."
-                    : "Θα έπαιρνε το τελευταίο αλεξίπτωτο από ένα αεροπλάνο που πέφτει.";
-            }
+            // Return a backup question guaranteed to respect the 48-hour rule
+            return getFreshFallback(isPunishment);
         }
 
         function nav(id) {
