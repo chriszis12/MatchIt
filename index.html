@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MATCH IT! ALPHA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Inter:wght@600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #CDFFE9; 
+            --stroke-color: #6A9D87;
+            --punish-red: #ff4d4d;
+            --text-font: 'Alfa Slab One', 'Inter', -apple-system, BlinkMacSystemFont, serif;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            font-family: var(--text-font);
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            transition: background-color 0.3s ease;
+        }
+        .outline-text {
+            color: transparent;
+            -webkit-text-stroke: 1.1px var(--stroke-color);
+            text-align: center;
+            font-weight: 400;
+            text-transform: uppercase;
+            line-height: 1.4;
+            letter-spacing: 0.02em;
+        }
+        .screen {
+            display: none; width: 100%; height: 100%;
+            flex-direction: column; align-items: center; justify-content: space-between;
+            position: absolute; padding: 60px 0;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .screen.active { display: flex; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        #back-btn {
+            position: absolute; top: 30px; left: 20px;
+            font-size: 1.2rem; z-index: 1000; cursor: pointer;
+            display: none; -webkit-text-stroke: 1px var(--stroke-color);
+        }
+        h1.title { font-size: 3.5rem; line-height: 1.15; margin: 0; }
+        h1.title span { font-size: 2.2rem; display: block; margin-top: 14px; }
+        .btn {
+            border: 4px solid var(--stroke-color);
+            border-radius: 50px; padding: 18px 50px;
+            font-size: 2rem; background: transparent;
+            transition: all 0.1s; cursor: pointer;
+        }
+        .btn:active { transform: scale(0.9); background: rgba(94, 139, 126, 0.1); }
+        .btn.disabled { opacity: 0.5; pointer-events: none; }
+        .divider { width: 100%; height: 5px; background-color: var(--stroke-color); flex-shrink: 0; }
+
+        .instr-zone { width: 100%; min-height: 80px; display: flex; align-items: center; justify-content: center; padding: 10px 20px; }
+        .q-zone { flex-grow: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 40px; text-align: center; }
+        .q-text { 
+            font-size: 2.1rem; 
+            line-height: 1.55; 
+            color: var(--stroke-color);
+            font-weight: 400;
+        }
+        .action-zone { width: 100%; padding: 40px 0; display: flex; flex-direction: column; align-items: center; gap: 30px; }
+        .timer-circle {
+            width: 75px; height: 75px; border: 4px solid var(--stroke-color);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 2.2rem;
+        }
+        .punish-mode { background-color: var(--punish-red) !important; }
+        .punish-mode .outline-text { -webkit-text-stroke-color: white !important; }
+        .punish-mode .q-text { color: white !important; }
+        .punish-mode .divider, .punish-mode .timer-circle { background-color: white !important; border-color: white !important; }
+        .punish-mode .timer-circle { color: white !important; }
+        .punish-mode .btn { border-color: white !important; -webkit-text-stroke-color: var(--punish-red) !important; background: white !important;}
+        .loading:after { content: '...'; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+
+        .error-text { font-size: 1rem !important; color: red !important; text-transform: none !important;}
+    </style>
+</head>
+<body>
+    <div id="back-btn" class="outline-text" onclick="goHome()">&lt; BACK</div>
+    <div id="home" class="screen active">
+        <h1 class="title outline-text">MATCH IT!<span>ALPHA</span></h1>
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="btn outline-text" style="text-transform: none;" onclick="start('el')">Greek</div>
+            <div class="btn outline-text" style="text-transform: none;" onclick="start('en')">English</div>
+            <div class="btn outline-text" style="font-size: 1.2rem;" onclick="nav('about')">ABOUT</div>
+        </div>
+        <div class="outline-text" style="font-size: 0.8rem;">COPYRIGHT CHRISTOS ZISOPOULOS 2026</div>
+    </div>
+    <div id="about" class="screen">
+        <h1 class="title outline-text">MATCH IT!<span>ALPHA</span></h1>
+        <div style="width:85%; font-size: 1.2rem; line-height: 1.5; text-align: center; color: var(--stroke-color);">
+            <p>This game is designed for mobile fun with friends.</p>
+            <p>Pass the phone to the person who fits the AI question within <b>30 seconds</b>.</p>
+            <p>Fail = AI Punishment.</p>
+            <p style="font-size: 0.9rem;">Contact: support.matchit@gmail.com</p>
+        </div>
+        <div class="btn outline-text" style="font-size: 1.2rem;" onclick="goHome()">BACK</div>
+    </div>
+    <div id="game" class="screen" style="padding: 0; justify-content: flex-start;">
+        <div class="outline-text" id="g-title" style="font-size: 2.5rem; margin: 40px 0 20px 0;">MATCH IT!</div>
+        <div class="divider"></div>
+        <div class="instr-zone"><div id="g-instr" class="outline-text" style="font-size:1.4rem;">Give the match to the person who</div></div>
+        <div class="divider"></div>
+        <div class="q-zone"><div id="q-text" class="q-text">LOADING</div></div>
+        <div class="divider"></div>
+        <div class="action-zone">
+            <div class="btn outline-text" id="next-btn" onclick="nextQ()">GOT IT!</div>
+            <div id="timer" class="timer-circle outline-text">30</div>
+        </div>
+    </div>
+    <script>
+        let lang = 'en';
+        let time = 30;
+        let timer;
+        let requestToken = 0;
+        let recentResponses = new Set(); // prevent repeats within same session
+
+        async function fetchAI(isPunishment = false, isRetry = false) {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 12000);
+                const response = await fetch("/api/message", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ lang, isPunishment }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    console.error(`API ${response.status}:`, errText);
+                    throw new Error(`${response.status}`);
+                }
+
+                const data = await response.json();
+                let aiText = data?.text;
+
+                if (!aiText) {
+                    console.error("No text in response. Full data:", data);
+                    throw new Error("Empty response");
+                }
+
+                aiText = aiText.trim().split('\n')[0].replace(/^[0-9.\-\s]+/, '').trim();
+                aiText = aiText.replace(/^["'«]|["'»]$/g, '');
+
+                // Only retry once for a repeat — never chain retries, keeps latency predictable.
+                if (recentResponses.has(aiText) && !isRetry && recentResponses.size < 20) {
+                    return await fetchAI(isPunishment, true);
+                }
+
+                recentResponses.add(aiText);
+                if (recentResponses.size > 20) {
+                    const arr = Array.from(recentResponses);
+                    recentResponses = new Set(arr.slice(-15));
+                }
+
+                return aiText;
+            } catch (e) {
+                console.error(`API fetch error:`, e.message, e);
+            }
+
+            return isPunishment
+                ? (lang === 'en' ? "Do 10 jumping jacks!" : "Κάνε 10 αναπηδήσεις!")
+                : (lang === 'en' ? "Forget why they walked into a room." : "Ξεχάσει γιατί μπήκε στο δωμάτιο.");
+        }
+
+        function nav(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.getElementById('back-btn').style.display = (id === 'home') ? 'none' : 'block';
+        }
+
+        function goHome() {
+            clearInterval(timer);
+            document.body.classList.remove('punish-mode');
+            nav('home');
+        }
+
+        function start(l) {
+            lang = l;
+            document.getElementById('g-title').innerHTML = `MATCH IT! <span style="font-size:1.4rem; text-transform:none;">${l == 'en' ? 'English' : 'Greek'}</span>`;
+            nav('game');
+            nextQ();
+        }
+
+        async function nextQ() {
+            clearInterval(timer);
+            document.body.classList.remove('punish-mode');
+
+            const myToken = ++requestToken; // this run "owns" the result, unless superseded
+            const qEl = document.getElementById('q-text');
+            const iEl = document.getElementById('g-instr');
+            const bEl = document.getElementById('next-btn');
+
+            // Disable the button while a question is loading so it can't be
+            // double-clicked into firing two overlapping requests/timers.
+            bEl.classList.add('disabled');
+
+            qEl.classList.add('loading');
+            qEl.innerText = lang === 'en' ? "AI IS THINKING" : "ΤΟ AI ΣΚΕΦΤΕΤΑΙ";
+            iEl.innerText = lang === 'en' ? "Give the match to the person who" : "Δώσε το σπίρτο στο άτομο που";
+            bEl.innerText = lang === 'en' ? "GOT IT!" : "ΤΟ 'ΧΩ!";
+
+            time = 30;
+            document.getElementById('timer').innerText = "30";
+
+            const result = await fetchAI(false);
+
+            // If the user hit Home/Back or started another round while this
+            // request was in flight, don't stomp on the newer state.
+            if (myToken !== requestToken) return;
+
+            qEl.classList.remove('loading');
+            qEl.innerText = result;
+            bEl.classList.remove('disabled');
+
+            timer = setInterval(() => {
+                time--;
+                document.getElementById('timer').innerText = time;
+                if (time <= 0) {
+                    clearInterval(timer);
+                    triggerPunishment();
+                }
+            }, 1000);
+        }
+
+        async function triggerPunishment() {
+            const myToken = requestToken; // still the same round, just now in punishment
+            document.body.classList.add('punish-mode');
+            const qEl = document.getElementById('q-text');
+            const iEl = document.getElementById('g-instr');
+            const bEl = document.getElementById('next-btn');
+
+            bEl.classList.add('disabled');
+            iEl.innerText = lang === 'en' ? "TIME EXPIRED: PUNISHMENT" : "ΤΕΛΟΣ ΧΡΟΝΟΥ: ΠΟΙΝΗ";
+            qEl.innerText = lang === 'en' ? "GENERATING TASK" : "ΔΗΜΙΟΥΡΓΙΑ ΠΟΙΝΗΣ";
+            bEl.innerText = lang === 'en' ? "I DID IT" : "ΤΟ ΕΚΑΝΑ";
+
+            const result = await fetchAI(true);
+            if (myToken !== requestToken) return;
+
+            qEl.innerText = result;
+            bEl.classList.remove('disabled');
+            if (window.navigator.vibrate) window.navigator.vibrate([500, 100, 500]);
+        }
+    </script>
+</body>
+</html>
