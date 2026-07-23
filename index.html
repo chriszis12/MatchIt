@@ -58,6 +58,17 @@
             font-size: 1.2rem; z-index: 1000; cursor: pointer;
             display: none; -webkit-text-stroke: 1px var(--stroke-color);
         }
+        .version-label {
+            position: absolute;
+            right: 14px;
+            bottom: 14px;
+            color: var(--stroke-color);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            opacity: 0.68;
+        }
         h1.title { font-size: 3.5rem; line-height: 1.15; margin: 0; }
         h1.title span { font-size: 2.2rem; display: block; margin-top: 14px; }
         .btn {
@@ -94,8 +105,13 @@
         .punish-mode { background-color: var(--punish-red) !important; }
         .punish-mode .outline-text { -webkit-text-stroke-color: white !important; }
         .punish-mode .q-text { color: white !important; }
-        .punish-mode .divider, .punish-mode .timer-circle { background-color: white !important; border-color: white !important; }
-        .punish-mode .timer-circle { color: white !important; }
+        .punish-mode .divider { background-color: white !important; }
+        .punish-mode .timer-circle {
+            background-color: transparent !important;
+            border-color: white !important;
+            color: white !important;
+            -webkit-text-stroke-color: white !important;
+        }
         .punish-mode .btn { border-color: white !important; -webkit-text-stroke-color: var(--punish-red) !important; background: white !important;}
         .loading:after {
             content: '';
@@ -152,6 +168,7 @@
             <div class="btn outline-text" style="font-size: 1.2rem;" onclick="nav('about')">ABOUT</div>
         </div>
         <div class="outline-text" style="font-size: 0.8rem;">COPYRIGHT CHRISTOS ZISOPOULOS 2026</div>
+        <div class="version-label">v0.2.0</div>
     </div>
     <div id="about" class="screen">
         <h1 class="title outline-text">MATCH IT!<span>ALPHA</span></h1>
