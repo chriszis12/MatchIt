@@ -21,6 +21,14 @@
             display: flex; flex-direction: column;
             transition: background-color 0.3s ease;
         }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: -35%;
+            pointer-events: none;
+            background: radial-gradient(circle, rgba(255,255,255,0.28) 0%, transparent 55%);
+            animation: ambient-drift 12s ease-in-out infinite alternate;
+        }
         .outline-text {
             color: transparent;
             -webkit-text-stroke: 1.1px var(--stroke-color);
@@ -37,7 +45,14 @@
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .screen.active { display: flex; }
-        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes popIn {
+            from { opacity: 0; transform: translateY(12px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes ambient-drift {
+            from { transform: translate3d(-4%, -2%, 0) scale(0.95); }
+            to { transform: translate3d(4%, 2%, 0) scale(1.05); }
+        }
         #back-btn {
             position: absolute; top: 30px; left: 20px;
             font-size: 1.2rem; z-index: 1000; cursor: pointer;
@@ -51,9 +66,14 @@
             font-size: 2rem; background: transparent;
             transition: all 0.1s; cursor: pointer;
         }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 0 rgba(106, 157, 135, 0.14); }
         .btn:active { transform: scale(0.9); background: rgba(94, 139, 126, 0.1); }
         .btn.disabled { opacity: 0.5; pointer-events: none; }
-        .divider { width: 100%; height: 5px; background-color: var(--stroke-color); flex-shrink: 0; }
+        .divider {
+            width: 100%; height: 5px; background-color: var(--stroke-color); flex-shrink: 0;
+            transform-origin: left center;
+        }
+        #game.active .divider { animation: divider-in 0.55s ease both; }
 
         .instr-zone { width: 100%; min-height: 80px; display: flex; align-items: center; justify-content: center; padding: 10px 20px; }
         .q-zone { flex-grow: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 40px; text-align: center; }
@@ -68,15 +88,56 @@
             width: 75px; height: 75px; border: 4px solid var(--stroke-color);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
             font-size: 2.2rem;
+            transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
         }
+        .timer-circle.warning { animation: timer-pulse 0.75s ease-in-out infinite; }
         .punish-mode { background-color: var(--punish-red) !important; }
         .punish-mode .outline-text { -webkit-text-stroke-color: white !important; }
         .punish-mode .q-text { color: white !important; }
         .punish-mode .divider, .punish-mode .timer-circle { background-color: white !important; border-color: white !important; }
         .punish-mode .timer-circle { color: white !important; }
         .punish-mode .btn { border-color: white !important; -webkit-text-stroke-color: var(--punish-red) !important; background: white !important;}
-        .loading:after { content: '...'; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+        .loading:after {
+            content: '';
+            display: inline-block;
+            width: 1.4em;
+            height: 0.35em;
+            margin-left: 0.2em;
+            background: radial-gradient(circle, currentColor 45%, transparent 48%) 0 50% / 0.4em 0.4em repeat-x;
+            animation: loading-dots 0.9s steps(3) infinite;
+        }
+        .question-arrive { animation: question-arrive 0.48s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .punish-mode #game { animation: punish-hit 0.42s ease both; }
+        @keyframes loading-dots {
+            from { clip-path: inset(0 100% 0 0); }
+            to { clip-path: inset(0 0 0 0); }
+        }
+        @keyframes question-arrive {
+            from { opacity: 0; transform: translateY(14px) scale(0.98); filter: blur(4px); }
+            to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        @keyframes divider-in {
+            from { transform: scaleX(0); opacity: 0; }
+            to { transform: scaleX(1); opacity: 1; }
+        }
+        @keyframes timer-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        @keyframes punish-hit {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-2px); }
+            100% { transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+            }
+        }
 
         .error-text { font-size: 1rem !important; color: red !important; text-transform: none !important;}
     </style>
@@ -228,7 +289,9 @@
             bEl.innerText = lang === 'en' ? "GOT IT!" : "ΤΟ 'ΧΩ!";
 
             time = 30;
-            document.getElementById('timer').innerText = "30";
+            const timerEl = document.getElementById('timer');
+            timerEl.innerText = "30";
+            timerEl.classList.remove('warning');
 
             const result = await fetchAI(false);
 
@@ -238,13 +301,19 @@
 
             qEl.classList.remove('loading');
             qEl.innerText = result;
+            qEl.classList.remove('question-arrive');
+            void qEl.offsetWidth;
+            qEl.classList.add('question-arrive');
             bEl.classList.remove('disabled');
 
             timer = setInterval(() => {
                 time--;
-                document.getElementById('timer').innerText = time;
+                const timerEl = document.getElementById('timer');
+                timerEl.innerText = time;
+                timerEl.classList.toggle('warning', time <= 5 && time > 0);
                 if (time <= 0) {
                     clearInterval(timer);
+                    timerEl.classList.remove('warning');
                     triggerPunishment();
                 }
             }, 1000);
@@ -266,6 +335,9 @@
             if (myToken !== requestToken) return;
 
             qEl.innerText = result;
+            qEl.classList.remove('question-arrive');
+            void qEl.offsetWidth;
+            qEl.classList.add('question-arrive');
             bEl.classList.remove('disabled');
             if (window.navigator.vibrate) window.navigator.vibrate([500, 100, 500]);
         }
