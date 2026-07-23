@@ -14,7 +14,7 @@ try {
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY;
 
-// All available models from your AI Studio list
+// All available models from AI Studio
 const GEMINI_MODELS = [
   "gemini-3.6-flash",
   "gemini-3.5-flash-lite",
@@ -25,7 +25,6 @@ const GEMINI_MODELS = [
   "gemini-2.5-flash-lite"
 ];
 
-// 3-Tier Spiciness System
 const prompts = {
   en: {
     chill: {
@@ -37,12 +36,12 @@ const prompts = {
       user: "Give me an edgy and embarrassing party prompt."
     },
     nsfw: {
-      system: "You write wild, inappropriate, unhinged 18+ adult party game prompts. Topics: illegal-ish behavior, severe hangovers, stealing, toxic traits, wild hookups, extreme degeneracy, and dark secrets. NOT just sex—include general unhinged adult behavior. Reply ONLY with ONE prompt, max 15 words, no quotes.",
+      system: "You write wild, inappropriate, unhinged adult party game prompts. Topics: modern dating disasters, wild hookup habits, texting exes at 3am, spicy bedroom confessions, awkward flirts, and raunchy secrets. NOT always explicit sex—include dating drama, intense flirting, and wild adult life. Reply ONLY with ONE prompt, max 15 words, no quotes.",
       user: "Give me a highly inappropriate, wild 18+ party prompt."
     },
     punishment: {
-      system: "You generate funny, safe physical dares or embarrassing tasks for a party game. Reply with ONLY ONE dare, max 12 words, no intro, no quotes.",
-      user: "Give me a new funny physical dare."
+      system: "You generate funny, actionable indoor party punishments and embarrassing dares (like letting others check phones, sending awkward texts, or silly physical acts). Reply with ONLY ONE punishment, max 12 words, no intro, no quotes.",
+      user: "Give me a new funny indoor party punishment."
     }
   },
   el: {
@@ -55,12 +54,12 @@ const prompts = {
       user: "Δώσε μια άβολη και πικάντικη ερώτηση/πρόκληση για την παρέα."
     },
     nsfw: {
-      system: `Γράφεις ακραίες, ακατάλληλες (18+) ερωτήσεις για παρέες. Θέματα: ακραία μεθύσια, τοξική συμπεριφορά, μικροκλοπές, άγρια σεξουαλικά σκηνικά, σκοτεινά μυστικά. ΟΧΙ μόνο σεξ, αλλά γενική ακραία ενήλικη συμπεριφορά. Απάντησε ΜΟΝΟ με μία πρόταση, μέχρι 15 λέξεις, χωρίς εισαγωγικά.`,
+      system: `Γράφεις ακραίες, ακατάλληλες (18+) ερωτήσεις για παρέες. Θέματα: καταστροφικά ραντεβού, άγρια φλερτ, μηνύματα σε πρώην στις 3 τα ξημερώματα, πικάντικα μυστικά κρεβατοκάμαρας. ΟΧΙ πάντα μόνο σεξ, αλλά δράματα σχέσεων, καυτά φλερτ και ενήλικη τρέλα. Απάντησε ΜΟΝΟ με μία πρόταση, μέχρι 15 λέξεις, χωρίς εισαγωγικά.`,
       user: "Δώσε μια άκρως ακατάλληλη 18+ πρόκληση."
     },
     punishment: {
-      system: `Γράφεις αστεία, σύντομα τολμήματα για παρέα. Απάντησε ΜΟΝΟ με ένα τόλμημα, μέχρι 12 λέξεις, χωρίς εισαγωγικά.`,
-      user: "Δώσε ένα καινούριο αστείο τόλμημα."
+      system: `Γράφεις αστεία, ανέξοδα και ντροπιαστικά τιμωρήματα εντός σπιτιού για πάρτι (όπως να δώσεις το κινητό σου, να στείλεις μήνυμα, ή αστείες πράξεις). Απάντησε ΜΟΝΟ με μία ποινή, μέχρι 12 λέξεις, χωρίς εισαγωγικά.`,
+      user: "Δώσε ένα καινούριο αστείο εσωτερικό τιμώρημα για πάρτι."
     }
   }
 };
@@ -121,14 +120,27 @@ const server = createServer(async (request, response) => {
       });
 
       let text = null;
+      const overallDeadline = Date.now() + 10_000; // stay well under the client's request timeout
 
       for (const model of GEMINI_MODELS) {
+        if (Date.now() > overallDeadline) {
+          console.warn("Overall AI deadline reached, falling back early.");
+          break;
+        }
         try {
-          const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-            body: requestBody
-          });
+          const controller = new AbortController();
+          const perModelTimeout = setTimeout(() => controller.abort(), 4_000);
+          let upstream;
+          try {
+            upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+              body: requestBody,
+              signal: controller.signal
+            });
+          } finally {
+            clearTimeout(perModelTimeout);
+          }
 
           if (upstream.ok) {
             const data = await upstream.json();
