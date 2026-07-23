@@ -163,8 +163,8 @@ const server = createServer(async (request, response) => {
         });
 
         if (upstream.status !== 429) break;
-        await upstream.text();
         if (attempt < 2) {
+          await upstream.body?.cancel();
           await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
         }
       }
@@ -194,7 +194,7 @@ const server = createServer(async (request, response) => {
       sendJson(response, 200, { text });
     } catch (error) {
       console.error(error);
-      sendJson(response, 400, { error: "Invalid request" });
+      sendJson(response, 500, { error: "Unable to generate a message" });
     }
     return;
   }
