@@ -22,9 +22,13 @@ const prompts = {
       system: "You write funny, punchy completions for the party-game prompt 'Who is most likely to...'. Reply with ONLY the completion itself (not the prefix), max 12 words, no lists, no quotation marks.",
       user: "Give me a new funny completion for 'Who is most likely to...'"
     },
+    adult: {
+      system: "You write wild, spicy, direct, and provocative 18+ adult party game prompts for friends. Topics include wild desires, sex positions, office hookups, lap dances, checking partner's phones, oral sex talent, or secret crushes/fantasies in the room. Reply with ONLY ONE question or prompt, max 15 words, no quotation marks, no lists.",
+      user: "Give me a spicy, uninhibited 18+ party prompt."
+    },
     punishment: {
-      system: "You generate funny, safe physical dares for a party game. Reply with ONLY ONE dare, max 10 words, no lists, no intro, no quotation marks.",
-      user: "Give me a new funny, safe physical dare."
+      system: "You generate funny, safe physical dares or embarrassing tasks for a party game. Reply with ONLY ONE dare, max 10 words, no lists, no intro, no quotation marks.",
+      user: "Give me a new funny physical dare."
     }
   },
   el: {
@@ -34,10 +38,17 @@ const prompts = {
 Απάντησε ΜΟΝΟ με τη συνέχεια της πρότασης, μέχρι 12 λέξεις, χωρίς εισαγωγικά ή λίστα.`,
       user: "Δώσε μια καινούρια, αστεία συνέχεια για το «Ποιος είναι πιο πιθανό να...»."
     },
+    adult: {
+      system: `Γράφεις τολμηρές, πονηρές, πικάντικες και άκρως αποκαλυπτικές ερωτήσεις/προκλήσεις 18+ για παιχνίδι ενηλίκων σε παρέες.
+Θέματα: σεξουαλικές φαντασιώσεις, ερωτικά μυστικά, lap dance, στοματικό σεξ, απιστία, παράξενα μέρη για σεξ (π.χ. αεροπλάνο, γραφείο), ερωτικά μηνύματα στην παρέα.
+Στυλ: «Δώσε τον αναπτήρα/σπίρτο σε αυτόν/ή που...» ή «Ποιος/α πιστεύεις ότι...» ή «Ποιο άτομο...».
+Απάντησε ΜΟΝΟ με μία πρόταση, μέχρι 15 λέξεις, σε φυσικά ελληνικά, χωρίς εισαγωγικά ή λίστα.`,
+      user: "Δώσε μια νέα, τολμηρή πρόκληση 18+ για την παρέα."
+    },
     punishment: {
-      system: `Γράφεις αστεία, σύντομα και ασφαλή τολμήματα για παρέα, σε φυσικά καθημερινά ελληνικά.
+      system: `Γράφεις αστεία, σύντομα και ελαφρώς ντροπιαστικά τολμήματα/ποινές για παρέα, σε φυσικά καθημερινά ελληνικά.
 Απάντησε ΜΟΝΟ με ένα τόλμημα, μέχρι 10 λέξεις, χωρίς εισαγωγικά ή λίστα.`,
-      user: "Δώσε ένα καινούριο, αστείο και ασφαλές τόλμημα."
+      user: "Δώσε ένα καινούριο αστείο τόλμημα."
     }
   }
 };
@@ -54,79 +65,24 @@ const fallbackLines = {
       "become famous for something completely accidental.",
       "cancel plans and celebrate when everyone agrees.",
       "bring snacks but eat them before arriving.",
-      "turn a five-minute story into a podcast.",
-      "survive a zombie apocalypse by pure luck.",
-      "send a screenshot to the person in the screenshot.",
-      "fall asleep during the most exciting movie.",
-      "make friends with a stranger in five minutes.",
-      "spend all day choosing what to watch.",
-      "say they are almost ready while still in bed.",
-      "take fifty photos and post none of them.",
-      "win an argument using completely made-up facts.",
-      "get lost while following a straight road.",
-      "eat dessert before the food arrives.",
-      "remember an embarrassing moment from ten years ago.",
-      "be late to their own birthday party.",
-      "start cleaning and end up reading old messages.",
-      "believe an obviously fake internet story.",
-      "laugh so hard they cannot explain the joke.",
-      "make a dramatic exit and immediately come back.",
-      "wear sunglasses when there is no sun.",
-      "befriend every animal at the party.",
-      "forget someone's name seconds after hearing it.",
-      "turn a small problem into a full emergency.",
-      "say one quick thing and talk for an hour.",
-      "accidentally like a photo from five years ago.",
-      "buy something just because it was on sale.",
-      "open the fridge repeatedly expecting new food.",
-      "give excellent advice and never follow it.",
-      "text from another room instead of walking over.",
-      "plan an entire holiday and never book it.",
-      "cry over a fictional character.",
-      "become competitive during a completely casual game.",
-      "forget their own password after creating it.",
-      "order the same meal every single time.",
-      "dance confidently without knowing the song.",
-      "say they are not hungry and steal everyone's fries.",
-      "make everyone wait while choosing the perfect playlist.",
-      "turn up with exactly what everyone forgot.",
-      "take charge despite having no idea what is happening.",
-      "apologize to a chair after bumping into it.",
-      "start a new hobby and buy every accessory.",
-      "recognize a song after hearing one second of it.",
-      "keep a secret for less than five minutes."
+      "turn a five-minute story into a podcast."
+    ],
+    adult: [
+      "Pass the match to whoever would have sex on an office desk at work!",
+      "Who here would secretly check their partner's phone for cheating?",
+      "Pass the match to whoever would join the mile high club on an airplane!",
+      "Who in this room would you want to give you a lap dance?",
+      "Who in this room has the biggest talent in oral sex?",
+      "Pass the match to the person who would write a bold romantic text to someone in the room!",
+      "Who is most likely to stop having sex completely after getting married?",
+      "Who in this room has done the wilder thing in bed?"
     ],
     punishment: [
       "Do your best robot dance for ten seconds.",
       "Speak like a movie villain until your next turn.",
       "Pretend the floor is lava for fifteen seconds.",
       "Sing your next sentence like an opera star.",
-      "Walk like a penguin around the room.",
-      "Give an acceptance speech for winning absolutely nothing.",
-      "Do a slow-motion victory lap around the room.",
-      "Act like a cat until someone guesses correctly.",
-      "Balance something harmless on your head for ten seconds.",
-      "Introduce yourself as a famous superhero.",
-      "Make three different animal noises without laughing.",
-      "Pretend you are reporting live from a disaster.",
-      "Dance with an invisible partner for fifteen seconds.",
-      "Sell the nearest object like a television commercial.",
-      "Speak only in questions until your next turn.",
-      "Do your most dramatic fake faint.",
-      "Imitate someone in the group until they guess.",
-      "Give everyone a ridiculous royal title.",
-      "Walk across the room like it is a fashion runway.",
-      "Make up a national anthem for the group.",
-      "Hold a serious interview with an imaginary celebrity.",
-      "Explain how to make toast like a sports commentator.",
-      "Freeze like a statue until someone says your name.",
-      "Perform an emotional goodbye to your phone.",
-      "Celebrate like you just won an Olympic medal.",
-      "Tell a joke using your most serious voice.",
-      "Pretend to be a waiter taking everyone's order.",
-      "Make a weather forecast for inside the room.",
-      "Speak with a dramatic accent for one round.",
-      "Create a handshake with the person beside you."
+      "Do 10 jumping jacks while declaring you are a fake friend!"
     ]
   },
   el: {
@@ -136,81 +92,23 @@ const fallbackLines = {
       "παραγγέλνει φαγητό και αμέσως ζηλεύει των άλλων.",
       "γελάει την πιο ακατάλληλη στιγμή.",
       "χάνει το κινητό ενώ το κρατάει.",
-      "ακυρώνει σχέδια και μετά το γιορτάζει.",
-      "φέρνει σνακ αλλά τα τρώει πριν φτάσει.",
-      "κάνει μια πεντάλεπτη ιστορία ολόκληρο podcast.",
-      "επιβιώνει από ζόμπι μόνο από καθαρή τύχη.",
-      "στέλνει screenshot στο άτομο που είναι μέσα.",
-      "κοιμάται στην πιο συναρπαστική ταινία.",
-      "γίνεται φίλος με έναν άγνωστο σε πέντε λεπτά.",
-      "περνάει όλη τη μέρα διαλέγοντας τι θα δει.",
-      "λέει πως είναι σχεδόν έτοιμος ενώ είναι στο κρεβάτι.",
-      "βγάζει πενήντα φωτογραφίες και δεν ανεβάζει καμία.",
-      "κερδίζει καβγά με εντελώς φανταστικά επιχειρήματα.",
-      "χάνεται ενώ ακολουθεί έναν ίσιο δρόμο.",
-      "τρώει το γλυκό πριν έρθει το φαγητό.",
-      "θυμάται ντροπιαστική στιγμή από πριν δέκα χρόνια.",
-      "αργεί στο ίδιο του το πάρτι γενεθλίων.",
-      "ξεκινάει καθάρισμα και καταλήγει να διαβάζει παλιά μηνύματα.",
-      "πιστεύει μια ολοφάνερα ψεύτικη ιστορία στο ίντερνετ.",
-      "γελάει τόσο που δεν μπορεί να εξηγήσει το αστείο.",
-      "κάνει δραματική έξοδο και επιστρέφει αμέσως.",
-      "φοράει γυαλιά ηλίου χωρίς να έχει ήλιο.",
-      "γίνεται φίλος με κάθε ζώο που συναντάει.",
-      "ξεχνάει ένα όνομα δευτερόλεπτα αφού το ακούσει.",
-      "κάνει ένα μικρό πρόβλημα ολόκληρη κατάσταση έκτακτης ανάγκης.",
-      "λέει κάτι γρήγορο και μιλάει για μία ώρα.",
-      "κάνει κατά λάθος like σε φωτογραφία πέντε χρόνων.",
-      "αγοράζει κάτι μόνο και μόνο επειδή είχε έκπτωση.",
-      "ανοίγει συνέχεια το ψυγείο περιμένοντας καινούριο φαγητό.",
-      "δίνει τέλειες συμβουλές αλλά δεν ακολουθεί καμία.",
-      "στέλνει μήνυμα από το διπλανό δωμάτιο.",
-      "σχεδιάζει ολόκληρο ταξίδι και δεν κλείνει τίποτα.",
-      "κλαίει για έναν φανταστικό χαρακτήρα.",
-      "γίνεται ανταγωνιστικός σε ένα εντελώς χαλαρό παιχνίδι.",
-      "ξεχνάει τον κωδικό αμέσως μόλις τον φτιάξει.",
-      "παραγγέλνει το ίδιο φαγητό κάθε φορά.",
-      "χορεύει με αυτοπεποίθηση χωρίς να ξέρει το τραγούδι.",
-      "λέει πως δεν πεινάει και κλέβει τις πατάτες όλων.",
-      "καθυστερεί τους πάντες διαλέγοντας την τέλεια playlist.",
-      "φέρνει ακριβώς αυτό που ξέχασαν όλοι.",
-      "αναλαμβάνει τον έλεγχο χωρίς να ξέρει τι συμβαίνει.",
-      "ζητάει συγγνώμη από μια καρέκλα όταν τη χτυπάει.",
-      "ξεκινάει νέο χόμπι και αγοράζει όλο τον εξοπλισμό.",
-      "αναγνωρίζει τραγούδι από το πρώτο δευτερόλεπτο.",
-      "κρατάει ένα μυστικό για λιγότερο από πέντε λεπτά."
+      "ακυρώνει σχέδια και μετά το γιορτάζει."
+    ],
+    adult: [
+      "Δώσε τον αναπτήρα σε αυτόν/ή που πιστεύεις ότι θα έκανε σεξ πάνω σε ένα γραφείο σε εταιρικό χώρο!",
+      "Ποιος/α πιστεύεις ότι θα έψαχνε το κινητό του συντρόφου του για να δει αν τον/την απατάει;",
+      "Δώσε τον αναπτήρα σε αυτόν/ή που πιστεύεις ότι θα έκανε σεξ σε αεροπλάνο!",
+      "Ποιο άτομο του αντίθετου φύλου θα ήθελες να σου χορέψει lap dance;",
+      "Ποιο άτομο έχει το μεγαλύτερο ταλέντο στο στοματικό σεξ;",
+      "Δώσε τον αναπτήρα σε αυτόν/ή που πιστεύεις ότι θα έγραφε τολμηρό ερωτικό γράμμα σε κάποιον/α από την παρέα!",
+      "Ποιος/α πιστεύεις πως θα κάνει μια φορά την εβδομάδα έως καθόλου σεξ μετά τον γάμο και τα παιδιά;",
+      "Ποιο άτομο από την παρέα έχει κάνει το πιο παράξενο πράγμα στο κρεβάτι;"
     ],
     punishment: [
       "Χόρεψε σαν ρομπότ για δέκα δευτερόλεπτα.",
       "Μίλα σαν κακός ταινίας μέχρι τον επόμενο γύρο.",
-      "Κάνε πως το πάτωμα είναι λάβα.",
-      "Τραγούδησε την επόμενη πρότασή σου σαν όπερα.",
-      "Περπάτησε σαν πιγκουίνος γύρω από το δωμάτιο.",
-      "Κάνε ευχαριστήριο λόγο επειδή κέρδισες απολύτως τίποτα.",
-      "Κάνε έναν γύρο θριάμβου σε αργή κίνηση.",
-      "Κάνε τη γάτα μέχρι κάποιος να το μαντέψει.",
-      "Ισορρόπησε κάτι ασφαλές στο κεφάλι σου για δέκα δευτερόλεπτα.",
-      "Συστήσου σαν να είσαι διάσημος υπερήρωας.",
-      "Κάνε τρεις ήχους ζώων χωρίς να γελάσεις.",
-      "Κάνε ζωντανό ρεπορτάζ από μια φανταστική καταστροφή.",
-      "Χόρεψε με έναν αόρατο παρτενέρ.",
-      "Πούλησε το κοντινότερο αντικείμενο σαν τηλεοπτική διαφήμιση.",
-      "Μίλα μόνο με ερωτήσεις μέχρι τον επόμενο γύρο.",
-      "Κάνε την πιο δραματική ψεύτικη λιποθυμία.",
-      "Μιμήσου κάποιον μέχρι να καταλάβει ποιος είναι.",
-      "Δώσε σε όλους έναν γελοίο βασιλικό τίτλο.",
-      "Περπάτησε στο δωμάτιο σαν πασαρέλα μόδας.",
-      "Φτιάξε έναν εθνικό ύμνο για την παρέα.",
-      "Πάρε σοβαρή συνέντευξη από έναν φανταστικό διάσημο.",
-      "Εξήγησε πώς γίνεται τοστ σαν αθλητικός σχολιαστής.",
-      "Μείνε ακίνητος μέχρι κάποιος να πει το όνομά σου.",
-      "Αποχαιρέτησε συγκινητικά το κινητό σου.",
-      "Πανηγύρισε σαν να κέρδισες ολυμπιακό μετάλλιο.",
-      "Πες ένα αστείο με την πιο σοβαρή φωνή σου.",
-      "Κάνε τον σερβιτόρο και πάρε παραγγελία από όλους.",
-      "Κάνε πρόγνωση καιρού για μέσα στο δωμάτιο.",
-      "Μίλα με δραματική προφορά για έναν γύρο.",
-      "Φτιάξε χειραψία με το άτομο δίπλα σου."
+      "Κάνε 10 αναπηδήσεις φωνάζοντας ότι είσαι δίπουλος φίλος!",
+      "Τραγούδησε την επόμενη πρότασή σου σαν όπερα."
     ]
   }
 };
@@ -278,7 +176,16 @@ const server = createServer(async (request, response) => {
     try {
       const body = await readJson(request);
       const language = body.lang === "el" ? "el" : "en";
-      const kind = body.isPunishment === true ? "punishment" : "question";
+      const isAdult = body.isAdult === true;
+      const isPunishment = body.isPunishment === true;
+
+      let kind = "question";
+      if (isPunishment) {
+        kind = "punishment";
+      } else if (isAdult) {
+        kind = "adult";
+      }
+
       const prompt = prompts[language][kind];
       const excluded = Array.isArray(body.exclude)
         ? body.exclude.filter(item => typeof item === "string").slice(-30)
