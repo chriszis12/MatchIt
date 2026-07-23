@@ -42,6 +42,61 @@ const prompts = {
   }
 };
 
+const fallbackLines = {
+  en: {
+    question: [
+      "forget why they walked into a room.",
+      "reply to a message three business days later.",
+      "order food and immediately regret their choice.",
+      "laugh at the worst possible moment.",
+      "start a group chat and then mute it.",
+      "lose their phone while holding it.",
+      "become famous for something completely accidental.",
+      "cancel plans and celebrate when everyone agrees.",
+      "bring snacks but eat them before arriving.",
+      "turn a five-minute story into a podcast."
+    ],
+    punishment: [
+      "Do your best robot dance for ten seconds.",
+      "Speak like a movie villain until your next turn.",
+      "Pretend the floor is lava for fifteen seconds.",
+      "Sing your next sentence like an opera star.",
+      "Walk like a penguin around the room.",
+      "Give an acceptance speech for winning absolutely nothing."
+    ]
+  },
+  el: {
+    question: [
+      "ξεχνάει γιατί μπήκε σε ένα δωμάτιο.",
+      "απαντάει σε μήνυμα μετά από τρεις εργάσιμες.",
+      "παραγγέλνει φαγητό και αμέσως ζηλεύει των άλλων.",
+      "γελάει την πιο ακατάλληλη στιγμή.",
+      "χάνει το κινητό ενώ το κρατάει.",
+      "ακυρώνει σχέδια και μετά το γιορτάζει.",
+      "φέρνει σνακ αλλά τα τρώει πριν φτάσει.",
+      "κάνει μια πεντάλεπτη ιστορία ολόκληρο podcast."
+    ],
+    punishment: [
+      "Χόρεψε σαν ρομπότ για δέκα δευτερόλεπτα.",
+      "Μίλα σαν κακός ταινίας μέχρι τον επόμενο γύρο.",
+      "Κάνε πως το πάτωμα είναι λάβα.",
+      "Τραγούδησε την επόμενη πρότασή σου σαν όπερα.",
+      "Περπάτησε σαν πιγκουίνος γύρω από το δωμάτιο.",
+      "Κάνε ευχαριστήριο λόγο επειδή κέρδισες απολύτως τίποτα."
+    ]
+  }
+};
+
+const fallbackPositions = new Map();
+
+function nextFallback(language, kind) {
+  const key = `${language}:${kind}`;
+  const lines = fallbackLines[language][kind];
+  const position = fallbackPositions.get(key) ?? Math.floor(Math.random() * lines.length);
+  fallbackPositions.set(key, position + 1);
+  return lines[position % lines.length];
+}
+
 function sendJson(response, status, body) {
   response.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
@@ -79,33 +134,53 @@ const server = createServer(async (request, response) => {
       const kind = body.isPunishment === true ? "punishment" : "question";
       const prompt = prompts[language][kind];
 
-      const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
+      const requestBody = JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: prompt.system }]
         },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: prompt.system }]
-          },
-          contents: [{
-            role: "user",
-            parts: [{ text: prompt.user }]
-          }],
-          generationConfig: {
-            maxOutputTokens: 256,
-            temperature: 1,
-            thinkingConfig: {
-              thinkingLevel: "minimal"
-            }
+        contents: [{
+          role: "user",
+          parts: [{ text: prompt.user }]
+        }],
+        generationConfig: {
+          maxOutputTokens: 256,
+          temperature: 1,
+          thinkingConfig: {
+            thinkingLevel: "minimal"
           }
-        })
+        }
       });
+
+      let upstream;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey
+          },
+          body: requestBody
+        });
+
+        if (upstream.status !== 429) break;
+        await upstream.text();
+        if (attempt < 2) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
+      }
 
       if (!upstream.ok) {
         const detail = await upstream.text();
         console.error(`Gemini API ${upstream.status}: ${detail}`);
+
+        if (upstream.status === 429 || upstream.status >= 500) {
+          sendJson(response, 200, {
+            text: nextFallback(language, kind),
+            source: "fallback"
+          });
+          return;
+        }
+
         sendJson(response, upstream.status, { error: "AI service request failed" });
         return;
       }
