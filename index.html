@@ -180,7 +180,6 @@
         let time = 30;
         let timer;
         let requestToken = 0;
-        let recentResponses = new Set(); // prevent repeats within same session
 
         function normalizeResponse(text) {
             return text
@@ -191,8 +190,32 @@
                 .trim();
         }
 
+        function historyKey(isPunishment) {
+            return `matchit-history-v1:${lang}:${isPunishment ? 'punishment' : 'question'}`;
+        }
+
+        function getResponseHistory(isPunishment) {
+            try {
+                const saved = JSON.parse(localStorage.getItem(historyKey(isPunishment)) || '[]');
+                return Array.isArray(saved) ? saved.filter(item => typeof item === 'string') : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function rememberResponse(text, isPunishment) {
+            const history = getResponseHistory(isPunishment);
+            history.push(text);
+            try {
+                localStorage.setItem(historyKey(isPunishment), JSON.stringify(history.slice(-40)));
+            } catch {
+                // The game still works when private browsing blocks local storage.
+            }
+        }
+
         async function fetchAI(isPunishment = false, isRetry = false) {
             try {
+                const responseHistory = getResponseHistory(isPunishment);
                 const controller = new AbortController();
                 const timeout = setTimeout(() => controller.abort(), 12000);
                 const response = await fetch("/api/message", {
@@ -203,7 +226,7 @@
                     body: JSON.stringify({
                         lang,
                         isPunishment,
-                        exclude: Array.from(recentResponses).slice(-12)
+                        exclude: responseHistory.slice(-30)
                     }),
                     signal: controller.signal
                 });
@@ -228,18 +251,14 @@
 
                 // Only retry once for a repeat — never chain retries, keeps latency predictable.
                 const responseKey = normalizeResponse(aiText);
-                const isRepeat = Array.from(recentResponses)
+                const isRepeat = responseHistory
                     .some(previous => normalizeResponse(previous) === responseKey);
 
-                if (isRepeat && !isRetry && recentResponses.size < 20) {
+                if (isRepeat && !isRetry) {
                     return await fetchAI(isPunishment, true);
                 }
 
-                recentResponses.add(aiText);
-                if (recentResponses.size > 20) {
-                    const arr = Array.from(recentResponses);
-                    recentResponses = new Set(arr.slice(-15));
-                }
+                rememberResponse(aiText, isPunishment);
 
                 return aiText;
             } catch (e) {
